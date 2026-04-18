@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant Provider as Provider
+    participant API as API
+    participant Edge as Edge
+    participant User as User
+
+    Provider->>API: Order delivered webhook
+    API->>User: Push delivered notice
+    API->>Edge: Arm monitoring
+    Edge-->>API: Sensor event (object missing)
+    API->>User: Alert triggered
+    Edge-->>API: Upload clip/snapshot
+    API->>User: Evidence ready

@@ -1,0 +1,683 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>澶栧崠闃茬洍鐩戞帶绯荤粺</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-theme="aqua" data-motion="normal" data-grid="normal">
+    <div class="ambient-lines" aria-hidden="true">
+      <svg class="ambient-svg primary" viewBox="0 0 600 320" role="presentation">
+        <path class="ambient-path" d="M20 220 C120 90 220 60 320 140 C420 220 520 200 580 120" />
+        <path class="ambient-path alt" d="M10 260 C160 160 250 180 330 230 C410 280 500 240 590 200" />
+        <circle class="ambient-node" cx="320" cy="140" r="5" />
+        <circle class="ambient-node alt" cx="520" cy="190" r="4" />
+      </svg>
+      <svg class="ambient-svg secondary" viewBox="0 0 520 260" role="presentation">
+        <path class="ambient-path soft" d="M18 200 C120 80 210 80 300 130 C380 180 460 170 502 110" />
+        <path class="ambient-path alt" d="M8 230 C140 150 210 160 290 210 C360 250 440 220 500 180" />
+        <circle class="ambient-node" cx="300" cy="130" r="4" />
+      </svg>
+    </div>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">TG</div>
+          <div class="brand-text">
+            <span>澶栧崠闃茬洍鐩戞帶</span>
+            <small>绉戞妧鑹烘湳 路 楂橈拷瀹堟姢</small>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Primary">
+          <a href="#overview">鎬伙拷</a>
+          <a href="#console">鎺у埗锟?/a>
+          <a href="#mission">妗堜緥</a>
+          <a href="#gallery">妯℃澘</a>
+          <a href="#motion">鍔ㄦ晥</a>
+          <a href="#workflow">娴佺▼</a>
+          <a href="#reports">鎶ヨ〃</a>
+          <a href="#rules">瑙勫垯</a>
+          <a href="#ops">杩愮淮</a>
+        </nav>
+        <div class="top-actions">
+          <button class="ghost">鏂囨。</button>
+          <button class="primary">锟藉姩闃诧拷</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" id="overview" data-reveal>
+          <div class="hero-copy">
+            <div class="eyebrow">鏅鸿兘瀹堟姢</div>
+            <h1>浠ワ拷鎶€鑹烘湳鏋勫缓澶栧崠鍙栵拷闃茬洍鐨勫叏閾撅拷鐩戞帶锟?/h1>
+            <p>
+              铻嶅悎瑙嗭拷鎰熺煡锟介噸閲忕洃娴嬩笌璁㈠崟鍥炶皟锛屽疄鏃惰瘑锟藉紓甯稿彇锟斤紝锟藉姩鐣欏瓨璇侊拷骞舵帹閫佸憡璀︼拷?              闈㈠悜鏍″洯銆佸叕瀵撴ゼ涓庨泦锟介厤锟界偣鐨勯珮锟介槻鎶ゅ钩鍙帮拷?            </p>
+
+            <div class="hero-actions">
+              <button class="primary">绔嬪嵆鎺ュ叆</button>
+              <button class="ghost">婕旂ず妯″紡</button>
+            </div>
+            <div class="hero-meta">绯荤粺杩愶拷鐘舵€侊細瀹堟姢锟?路 棰勶拷鍛婅鍝嶏拷 180ms</div>
+          </div>
+
+          <div class="hero-visual">
+            <div class="signal-card">
+              <div class="signal-head">
+                <span>瀹炴椂娉㈠舰</span>
+                <span class="pill">鍦ㄧ嚎</span>
+              </div>
+              <svg class="signal-svg" viewBox="0 0 360 220" role="img" aria-label="Monitoring waveform">
+                <path class="trace" d="M20 150 C60 90 100 60 140 90 C170 110 200 120 240 70 C270 35 310 50 340 100" />
+                <path class="trace delay" d="M20 180 C80 120 120 140 160 160 C200 185 260 170 340 140" />
+                <circle class="pulse" cx="120" cy="88" r="10" />
+                <circle class="pulse delay" cx="260" cy="78" r="12" />
+              </svg>
+              <div class="signal-footer">
+                <span>寤惰繜 180ms</span>
+                <span>鍚岋拷锟藉父</span>
+              </div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <strong id="hero-sessions">0</strong>
+                <span>娲昏穬鐩戞帶</span>
+              </div>
+              <div class="metric">
+                <strong id="hero-alerts">0</strong>
+                <span>浠婃棩鍛婏拷</span>
+              </div>
+              <div class="metric">
+                <strong id="hero-devices">0</strong>
+                <span>鍦ㄧ嚎璁撅拷</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel style-console" id="console" data-reveal>
+          <div class="panel-head">
+            <h2>瑙嗭拷鎺у埗锟?/h2>
+            <div class="panel-actions">
+              <button class="ghost" id="console-float-toggle" type="button">锟斤拷</button>
+              <button class="ghost" id="console-test-toggle" type="button">娴嬭瘯妯″紡</button>
+              <button class="ghost" id="console-demo-toggle" type="button">婕旂ず锟斤拷</button>
+              <button class="ghost" id="console-demo-pause" type="button">鏆傚仠</button>
+              <button class="ghost" id="console-collapse-toggle" type="button">鎶樺彔</button>
+              <button class="ghost console-drag" id="console-drag-handle" type="button">鎷栧姩</button>
+            </div>
+          </div>
+          <div class="console-body">
+            <span class="hint">鍒囨崲涓伙拷鍏夎氨涓庡姩鏁堝瘑搴︼紝瀹炴椂璋冩暣璧涘崥姘涘洿锟?/span>
+            <div class="demo-bar" aria-hidden="true">
+              <span class="demo-bar-fill"></span>
+              <span class="demo-bar-label" id="demo-bar-label">婕旂ず锟斤拷锟?/span>
+              <span class="demo-beat" id="demo-beat"></span>
+            </div>
+            <div class="console-grid">
+              <div class="console-card">
+                <h3>涓伙拷鍏夛拷</h3>
+                <div class="swatch-row">
+                  <button class="swatch" data-theme="aqua" aria-label="Aqua"></button>
+                  <button class="swatch" data-theme="azur" aria-label="Azur"></button>
+                  <button class="swatch" data-theme="ember" aria-label="Ember"></button>
+                  <button class="swatch" data-theme="lime" aria-label="Lime"></button>
+                </div>
+                <div class="meta">榛橈拷楂橈拷闈掕摑锛岋拷鐩栧喎鏆栬禌鍗氬厜璋憋拷?/div>
+              </div>
+              <div class="console-card">
+                <h3>鍔ㄦ晥瀵嗗害</h3>
+                <div class="toggle-row">
+                  <button class="toggle-btn" data-motion="quiet">鏌斿拰</button>
+                  <button class="toggle-btn" data-motion="normal">鍧囪　</button>
+                  <button class="toggle-btn" data-motion="boost">锟斤拷?/button>
+                </div>
+                <div class="meta">褰卞搷娉㈠舰涓庤矾寰勬弿杈癸拷搴︼拷?/div>
+              </div>
+              <div class="console-card">
+                <h3>缃戞牸寮哄害</h3>
+                <div class="toggle-row">
+                  <button class="toggle-btn" data-grid="soft">浣庡櫔</button>
+                  <button class="toggle-btn" data-grid="normal">鍧囪　</button>
+                  <button class="toggle-btn" data-grid="dense">楂樿兘</button>
+                </div>
+                <div class="meta">璋冩暣鑳屾櫙鑳介噺绾圭悊涓庡眰娆★拷?/div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="mission" data-reveal>
+          <div class="panel-head">
+            <h2>妗堜緥灞曠ず</h2>
+            <div class="panel-actions">
+              <button class="ghost">鏌ョ湅鍏ㄩ儴</button>
+            </div>
+          </div>
+          <div class="filter-bar" data-target="#case-grid" data-filter-bar="cases">
+            <span class="filter-label">绛涳拷?/span>
+            <button class="filter-btn" data-filter="all">鍏ㄩ儴</button>
+            <button class="filter-btn" data-filter="campus">鏍″洯</button>
+            <button class="filter-btn" data-filter="residence">锟斤拷</button>
+            <button class="filter-btn" data-filter="enterprise">浼佷笟</button>
+            <button class="filter-btn" data-filter="night">娣憋拷</button>
+          </div>
+          <div class="case-grid" id="case-grid">
+            <article class="case-card" data-tags="campus night">
+              <div class="case-tag">鏍″洯 路 娣憋拷閰嶏拷?/div>
+              <h3>鏅鸿兘鍙栵拷鍖鸿仈锟?/h3>
+              <p>澶氱偣浣嶆憚鍍忓ご + 閲嶉噺浼犳劅鑱斿悎鍒ゆ柇寮傚父鍙栵拷锛屽憡锟芥椂闂寸缉锟?43%锟?/p>
+              <div class="case-meta">
+                <span>6 鏍嬶拷锟?/span>
+                <span>24/7 鐩戞帶</span>
+              </div>
+            </article>
+            <article class="case-card" data-tags="residence whitelist">
+              <div class="case-tag">锟斤拷 路 澶氾拷锟?/div>
+              <h3>鐧藉悕鍗曟煍鎬ч槻锟?/h3>
+              <p>瀹ゅ弸鎺堟潈 + 鍔拷鍙栭鐮侊紝鍑忓皯锟斤拷?61%锛屾彁鍗囧畨鍏ㄤ笌浣撻獙骞宠　锟?/p>
+              <div class="case-meta">
+                <span>18 灞傛ゼ</span>
+                <span>200+ 璁㈠崟/锟?/span>
+              </div>
+            </article>
+            <article class="case-card" data-tags="enterprise evidence">
+              <div class="case-tag">浼佷笟 路 闆嗕腑閰嶏拷?/div>
+              <h3>锟斤拷鍙栬瘉锟斤拷?/h3>
+              <p>锟藉姩鍓緫璇侊拷鐗囷拷骞朵笂浼犱簯锟斤紝鏀寔娉曞姟鐣欐。涓庤矗浠昏拷婧拷?/p>
+              <div class="case-meta">
+                <span>3 锟斤拷锟?/span>
+                <span>99.9% 锟斤拷锟?/span>
+              </div>
+            </article>
+          </div>
+          <div class="case-timeline">
+            <div class="timeline-step">
+              <span class="step-index">01</span>
+              <div>
+                <strong>璁㈠崟鍥炶皟鎺ュ叆</strong>
+                <p>瀹炴椂鑾峰彇閫佽揪鐘讹拷锛岋拷鍔ㄨЕ鍙戠洃鎺т笌鎻愰啋锟?/p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <span class="step-index">02</span>
+              <div>
+                <strong>澶氫紶鎰熻瀺鍚堣瘑锟?/strong>
+                <p>鍔ㄤ綔銆侀噸閲忥拷ROI 寮傚父璇勫垎鏅鸿兘铻嶅悎锟?/p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <span class="step-index">03</span>
+              <div>
+                <strong>鍛婏拷 + 鍙栬瘉锟斤拷</strong>
+                <p>鎺拷锟藉綍鍒讹拷浜戯拷澶囦唤鍚岋拷瀹屾垚锟?/p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="gallery" data-reveal>
+          <div class="panel-head">
+            <h2>鍦烘櫙妯℃澘锟?/h2>
+            <div class="panel-actions">
+              <button class="ghost">娴忥拷鍏拷</button>
+            </div>
+          </div>
+          <div class="filter-bar" data-target="#template-grid" data-filter-bar="templates">
+            <span class="filter-label">绛涳拷?/span>
+            <button class="filter-btn" data-filter="all">鍏ㄩ儴</button>
+            <button class="filter-btn" data-filter="campus">鏍″洯</button>
+            <button class="filter-btn" data-filter="residence">锟斤拷</button>
+            <button class="filter-btn" data-filter="enterprise">浼佷笟</button>
+            <button class="filter-btn" data-filter="night">娣憋拷</button>
+            <button class="filter-btn" data-filter="data">鏁版嵁</button>
+          </div>
+          <div class="template-grid" id="template-grid">
+            <article class="template-card" data-tags="mini">
+              <div class="template-preview"></div>
+              <div class="template-body">
+                <div class="template-tag">Mini Zone</div>
+                <h3>鏅鸿兘璐ф灦鑱旈槻</h3>
+                <p>閽堬拷灏忓瀷锟藉崠鏌滅殑杞婚噺閮ㄧ讲妯℃澘锟?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+            <article class="template-card" data-tags="campus">
+              <div class="template-preview alt"></div>
+              <div class="template-body">
+                <div class="template-tag">Campus</div>
+                <h3>瀹胯垗闆嗙兢鐩戞帶</h3>
+                <p>澶氱偣浣嶆憚鍍忓ご涓庨噸閲忎紶鎰熻仈鍚堢瓥鐣ワ拷?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+            <article class="template-card" data-tags="residence">
+              <div class="template-preview mint"></div>
+              <div class="template-body">
+                <div class="template-tag">Residence</div>
+                <h3>澶氾拷鎴峰崗锟?/h3>
+                <p>鐧藉悕鍗曟巿鏉冧笌鍙栵拷鐮佸悓锟斤拷鐞嗭拷?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+            <article class="template-card" data-tags="enterprise">
+              <div class="template-preview cyan"></div>
+              <div class="template-body">
+                <div class="template-tag">Enterprise</div>
+                <h3>浼佷笟閰嶏拷鐐?/h3>
+                <p>闆嗕腑寮忓憡璀︿笌鍙栬瘉锟斤拷锟?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+            <article class="template-card" data-tags="night">
+              <div class="template-preview rose"></div>
+              <div class="template-body">
+                <div class="template-tag">Night Shift</div>
+                <h3>娣憋拷鐩戞帶鏂癸拷</h3>
+                <p>寮卞厜澧炲己涓庯拷锟借Е鍙戜繚鎶わ拷?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+            <article class="template-card" data-tags="data">
+              <div class="template-preview purple"></div>
+              <div class="template-body">
+                <div class="template-tag">Data Lab</div>
+                <h3>鏁版嵁锟藉績妯★拷</h3>
+                <p>澶氭姤琛拷锟斤拷鍒欓泦鍏拷娲炲療锟?/p>
+              </div>
+              <div class="template-footer">
+                <button class="ghost">鏌ョ湅</button>
+                <button class="primary">绔嬪嵆锟斤拷</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" id="motion" data-reveal>
+          <div class="panel-head">
+            <h2>鍔ㄦ晥妗堜緥锟?/h2>
+            <div class="panel-actions">
+              <span class="pill">SVG LAB</span>
+              <button class="ghost">鎵撳紑绱犳潗锟?/button>
+            </div>
+          </div>
+          <div class="filter-bar" data-target="#motion-grid" data-filter-bar="motion">
+            <span class="filter-label">绛涳拷?/span>
+            <button class="filter-btn" data-filter="all">鍏ㄩ儴</button>
+            <button class="filter-btn" data-filter="alarm">鍛婏拷</button>
+            <button class="filter-btn" data-filter="vision">瑙嗭拷</button>
+            <button class="filter-btn" data-filter="evidence">鍙栬瘉</button>
+          </div>
+          <div class="motion-grid" id="motion-grid">
+            <article class="motion-card" data-tags="alarm">
+              <div class="motion-preview">
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Alarm flow animation">
+                  <path class="motion-path" d="M10 90 C40 30 80 30 110 70 C130 90 160 100 220 40" />
+                  <path class="motion-path alt" d="M20 100 C60 70 90 80 120 95 C150 110 190 90 230 70" />
+                  <circle class="motion-node" cx="108" cy="70" r="6" />
+                  <circle class="motion-node alt" cx="200" cy="50" r="5" />
+                </svg>
+              </div>
+              <div class="motion-body">
+                <div class="motion-tag">Alarm Flow</div>
+                <h3>鍛婏拷璺緞鏄狅拷</h3>
+                <p>澶氭簮浜嬩欢杞ㄨ抗鎻忚竟锛屽疄鏃跺睍绀鸿Е鍙戦摼锟戒笌鎶戝埗鑺傜偣锟?/p>
+              </div>
+              <div class="motion-meta">
+                <span>6 鑺傜偣</span>
+                <span>180ms</span>
+              </div>
+            </article>
+            <article class="motion-card" data-tags="vision">
+              <div class="motion-preview">
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Vision mesh animation">
+                  <path class="motion-path alt" d="M12 80 C60 20 110 20 150 60 C170 78 200 92 228 72" />
+                  <path class="motion-path" d="M18 96 C58 76 96 86 126 102 C152 114 182 100 220 84" />
+                  <circle class="motion-node" cx="148" cy="60" r="6" />
+                  <circle class="motion-node alt" cx="86" cy="52" r="4" />
+                </svg>
+              </div>
+              <div class="motion-body">
+                <div class="motion-tag">Vision Mesh</div>
+                <h3>瑙嗭拷瀹堟姢缃戯拷</h3>
+                <p>浣庡姛鑰楃洃鎺э拷閲庡姩鐢诲寲锛屽疄鏃舵爣娉ㄥ紓甯稿尯鍩燂拷?/p>
+              </div>
+              <div class="motion-meta">
+                <span>澶歊OI</span>
+                <span>24/7</span>
+              </div>
+            </article>
+            <article class="motion-card" data-tags="evidence">
+              <div class="motion-preview">
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Evidence trail animation">
+                  <path class="motion-path" d="M16 84 C40 50 70 40 100 58 C130 76 160 86 210 56" />
+                  <path class="motion-path alt" d="M20 104 C60 86 92 98 128 110 C168 124 206 108 226 92" />
+                  <circle class="motion-node" cx="100" cy="58" r="5" />
+                  <circle class="motion-node alt" cx="210" cy="56" r="6" />
+                </svg>
+              </div>
+              <div class="motion-body">
+                <div class="motion-tag">Evidence Trail</div>
+                <h3>鍙栬瘉杞ㄨ抗鍥炴斁</h3>
+                <p>锟藉姩鎵撶偣鍙栬瘉鐗囨锛屽洖鏀撅拷寰勫嵆鍒荤敓鎴愶拷?/p>
+              </div>
+              <div class="motion-meta">
+                <span>锟界墖锟?/span>
+                <span>24h 淇濈暀</span>
+              </div>
+            </article>
+          </div>
+          <div class="motion-strip">
+            <span class="chip">鎻忚竟鍔ㄧ敾</span>
+            <span class="chip">鍙戝厜鑺傜偣</span>
+            <span class="chip">锟藉緞鍙狅拷</span>
+            <span class="chip">锟界偣绾癸拷</span>
+          </div>
+        </section>
+
+        <section class="panel" id="workflow" data-reveal>
+          <div class="panel-head">
+            <h2>锟戒綋鍖栭槻鎶ゆ祦绋?/h2>
+            <span class="hint">浠庯拷鍗曡Е杈惧埌鍙栬瘉褰掓。锛屽洓锟藉畬鎴愰棴锟斤拷?/span>
+          </div>
+          <div class="workflow-grid">
+            <div class="workflow-step">
+              <span class="workflow-index">01</span>
+              <h3>璁㈠崟瑙﹀彂</h3>
+              <p>骞冲彴鍥炶皟鎴栨墜鍔拷鍏ワ紝鍚姩鐩戞帶涓庢彁閱掞拷?/p>
+            </div>
+            <div class="workflow-step">
+              <span class="workflow-index">02</span>
+              <h3>澶氭簮鎰熺煡</h3>
+              <p>鎽勫儚澶达拷閲嶉噺涓庡姩浣滆瘎鍒嗚瀺鍚堝垽瀹氾拷?/p>
+            </div>
+            <div class="workflow-step">
+              <span class="workflow-index">03</span>
+              <h3>瑙勫垯寮曟搸</h3>
+              <p>鍏ㄥ眬涓庝釜浜猴拷鍒欏苟锟斤紝绮惧噯鎶戝埗锟芥姤锟?/p>
+            </div>
+            <div class="workflow-step">
+              <span class="workflow-index">04</span>
+              <h3>鍛婏拷鍙栵拷</h3>
+              <p>鎺拷鍛婅锟借瘉锟藉綍鍍忋€佷簯锟藉皝瀛橈拷?/p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="reports" data-reveal>
+          <div class="panel-head">
+            <h2>鎶ヨ〃</h2>
+            <div class="panel-actions">
+              <select id="trend-interval">
+                <option value="day">鏃ヨ秼锟?/option>
+                <option value="week">鍛ㄨ秼锟?/option>
+              </select>
+              <div class="date-range">
+                <input type="date" id="report-start" class="ghost" />
+                <span class="muted">锟斤拷</span>
+                <input type="date" id="report-end" class="ghost" />
+                <button id="clear-report-range" class="ghost small">锟斤拷锟?/button>
+              </div>
+              <button id="refresh-reports" class="ghost">鍒锋柊</button>
+            </div>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <span>璁㈠崟</span>
+              <strong id="summary-orders">0</strong>
+              <div class="meta" id="summary-orders-meta">created 0 路 delivered 0 路 picked 0</div>
+            </div>
+            <div class="summary-card">
+              <span>鍛婏拷</span>
+              <strong id="summary-alerts">0</strong>
+              <div class="meta" id="summary-alerts-meta">open 0 路 resolved 0 路 false 0</div>
+            </div>
+            <div class="summary-card">
+              <span>璁撅拷</span>
+              <strong id="summary-devices">0</strong>
+              <div class="meta" id="summary-devices-meta">online 0 路 offline 0</div>
+            </div>
+            <div class="summary-card">
+              <span>鐩戞帶浼氳瘽</span>
+              <strong id="summary-sessions">0</strong>
+              <div class="meta" id="summary-sessions-meta">armed 0 路 alerted 0 路 confirmed 0</div>
+            </div>
+            <div class="summary-card">
+              <span>浜嬩欢锟?4h锟?/span>
+              <strong id="summary-events">0</strong>
+              <div class="meta">锟斤拷?24 灏忔椂浼犳劅鍣ㄤ簨锟?/div>
+            </div>
+            <div class="summary-card">
+              <span>瑙勫垯鍛戒腑</span>
+              <strong id="summary-rules">0</strong>
+              <div class="meta" id="summary-rules-meta">suppressed 0</div>
+            </div>
+          </div>
+          <div class="report-actions">
+            <button id="export-summary" class="ghost">瀵煎嚭鎽橈拷 CSV</button>
+            <button id="export-trends" class="ghost">瀵煎嚭瓒嬪娍 CSV</button>
+            <button id="export-rule-matches" class="ghost">瀵煎嚭瑙勫垯鍛戒腑 CSV</button>
+          </div>
+          <div class="trend-grid">
+            <div class="trend-card">
+              <h3>璁㈠崟</h3>
+              <div class="trend-bars" id="trend-orders"></div>
+              <div class="trend-meta" id="trend-orders-meta"></div>
+            </div>
+            <div class="trend-card">
+              <h3>鍛婏拷</h3>
+              <div class="trend-bars" id="trend-alerts"></div>
+              <div class="trend-meta" id="trend-alerts-meta"></div>
+            </div>
+            <div class="trend-card">
+              <h3>浜嬩欢</h3>
+              <div class="trend-bars" id="trend-events"></div>
+              <div class="trend-meta" id="trend-events-meta"></div>
+            </div>
+            <div class="trend-card">
+              <h3>瑙勫垯鍛戒腑</h3>
+              <div class="trend-bars" id="trend-rule-matches"></div>
+              <div class="trend-meta" id="trend-rules-meta"></div>
+            </div>
+          </div>
+                      <div class="trend-card">
+              <h3>璁撅拷</h3>
+              <div class="trend-bars" id="trend-devices"></div>
+              <div class="trend-meta" id="trend-devices-meta"></div>
+            </div>
+            <div class="trend-card">
+              <h3>鐩戞帶浼氳瘽</h3>
+              <div class="trend-bars" id="trend-sessions"></div>
+              <div class="trend-meta" id="trend-sessions-meta"></div>
+            </div>
+          <div class="trend-legend">
+            <span><i class="dot orders"></i>璁㈠崟</span>
+            <span><i class="dot alerts"></i>鍛婏拷</span>
+            <span><i class="dot devices"></i>璁撅拷</span>
+            <span><i class="dot sessions"></i>浼氳瘽</span>
+            <span><i class="dot events"></i>浜嬩欢</span>
+            <span><i class="dot rules"></i>瑙勫垯</span>
+          </div>
+        </section>
+
+        <section class="panel" id="ops" data-reveal>
+          <div class="panel-head">
+            <h2>杩愮淮锟斤拷</h2>
+          </div>
+          <div class="grid three">
+            <div class="ops-card">
+              <h3>璁㈠崟瀵煎叆</h3>
+              <form id="import-form" class="import-form">
+                <div class="form-row">
+                  <label for="merchant">鍟嗭拷</label>
+                  <input type="text" id="merchant" placeholder="Coffee Lab" />
+                </div>
+                <div class="form-row">
+                  <label for="summary">鍟嗗搧鎽橈拷</label>
+                  <input type="text" id="summary" placeholder="Latte + pastry" />
+                </div>
+                <div class="form-row">
+                  <label for="pickup-window">棰勶拷鍙栭锛堝垎閽燂拷</label>
+                  <input type="number" id="pickup-window" value="30" min="5" max="180" />
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="primary">瀵煎叆璁㈠崟</button>
+                  <button type="button" id="enable-push" class="ghost">锟斤拷锟斤拷?/button>
+                </div>
+              </form>
+              <div class="hint">婕旂ず璐﹀彿锟藉姩鐧诲綍锟藉彲浣跨敤鈥滄ā鎷燂拷杈锯€濇祴璇曞憡璀︼拷?/div>
+            </div>
+            <div class="ops-card">
+              <h3>璁撅拷閰嶏拷</h3>
+              <div class="form-row">
+                <label for="min-motion">锟藉皬鍔ㄤ綔鍒嗭拷?/label>
+                <input type="number" id="min-motion" value="5000" />
+              </div>
+              <div class="form-row">
+                <label for="max-drop">锟藉ぇ閲嶉噺涓嬮檷锛堣礋鏁帮拷?/label>
+                <input type="number" id="max-drop" value="-300" />
+              </div>
+              <button id="save-config" class="ghost">淇濆瓨閰嶇疆</button>
+              <button id="refresh-devices" class="ghost">鍒锋柊璁撅拷</button>
+              <span id="selected-device" class="pill">褰撳墠閫夋嫨锛氭棤</span>
+            </div>
+            <div class="ops-card">
+              <h3>锟介€熼獙锟?/h3>
+              <div class="form-row">
+                <label for="pickup-code">鍙栵拷锟?/label>
+                <input type="text" id="pickup-code" placeholder="6 浣嶅姩鎬佺爜" />
+              </div>
+              <button id="verify-code-btn" class="ghost">楠岃瘉鍙栵拷锟?/button>
+              <div class="divider"></div>
+              <div class="ops-subhead">
+                <span>瀹★拷鏃ワ拷</span>
+                <button id="load-audit" class="ghost">鍔犺浇瀹★拷</button>
+              </div>
+              <ul id="audit-list" class="list compact"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="rules" data-reveal>
+          <div class="panel-head">
+            <h2>瑙勫垯寮曟搸</h2>
+            <span class="hint">锟借鍖栬鍒欓泦锟藉叏锟界瓥鐣ヤ笌鍛斤拷鏃ュ織锟?/span>
+          </div>
+          <div id="rules-root"></div>
+        </section>
+
+        <section class="panel" id="orders" data-reveal>
+          <div class="panel-head">
+            <h2>璁㈠崟鍒楄〃</h2>
+          </div>
+          <ul id="orders-list" class="list"></ul>
+        </section>
+
+        <div class="grid three">
+        <section class="panel" id="alerts" data-reveal>
+            <div class="panel-head">
+              <h2>鍛婏拷</h2>
+              <span class="hint">鏌ョ湅浜嬩欢璇︽儏涓庤瘉锟斤拷?/span>
+            </div>
+            <ul id="alerts-list" class="list"></ul>
+          </section>
+
+          <section class="panel" id="alert-detail" data-reveal>
+            <div class="panel-head">
+              <h2>鍛婏拷锟芥儏</h2>
+            </div>
+            <pre id="alert-detail-output" class="code"></pre>
+            <div id="alert-media" class="media-list"></div>
+          </section>
+
+          <section class="panel" id="devices" data-reveal>
+            <div class="panel-head">
+              <h2>璁撅拷</h2>
+              <button id="load-health" class="ghost">鍔犺浇鍋ュ悍</button>
+            </div>
+            <ul id="devices-list" class="list"></ul>
+            <pre id="health-output" class="code"></pre>
+          </section>
+        </div>
+
+        <section class="panel" id="rule-matches" data-reveal>
+          <div class="panel-head">
+            <h2>瑙勫垯鍛戒腑鏃ュ織</h2>
+            <div class="panel-actions">
+              <select id="rule-match-filter">
+                <option value="">鍏ㄩ儴浜嬩欢</option>
+                <option value="motion">motion</option>
+                <option value="object_missing">object_missing</option>
+                <option value="weight_drop">weight_drop</option>
+              </select>
+              <select id="rule-match-range">
+                <option value="24h">锟斤拷?24 灏忔椂</option>
+                <option value="7d">锟斤拷?7 锟?/option>
+                <option value="30d">锟斤拷?30 锟?/option>
+                <option value="all">鍏ㄩ儴</option>
+              </select>
+              <div class="date-range">
+                  <input type="date" id="rule-match-start" class="ghost" />
+                  <span class="muted">锟斤拷</span>
+                  <input type="date" id="rule-match-end" class="ghost" />
+                </div>
+                <select id="rule-match-rule-set">
+                  <option value="">全锟斤拷锟斤拷锟斤拷</option>
+                </select>
+                <input id="rule-match-search" class="ghost" placeholder="鎼滅储璁㈠崟ID/瑙勫垯ID" />
+              <button id="load-rule-matches" class="ghost">鍔犺浇鏃ュ織</button>
+              <label class="inline-check">
+                <input type="checkbox" id="include-suppressed" />
+                鏄剧ず鍐峰嵈鍛戒腑
+              </label>
+            </div>
+          </div>
+          <div class="meta">鐢ㄤ簬鎺掓煡瑙勫垯瑙﹀彂涓庡喎鍗存姂鍒跺師鍥狅拷?/div>
+          <ul id="rule-matches-list" class="list"></ul>
+          <div class="pager">
+            <button id="rule-matches-prev" class="ghost">涓婁竴锟?/button>
+            <span id="rule-matches-page" class="hint">锟?1 锟?/span>
+            <button id="rule-matches-next" class="ghost">涓嬩竴锟?/button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      window.API_BASE = window.API_BASE || "http://localhost:18000/api/v1";
+    </script>
+    <script src="./rule_dsl_editor.js"></script>
+    <script src="./rules.js"></script>
+  <script src="./ws_logic.js"></script>
+  <script src="./list_limit.js"></script>
+  <script src="./rule_match_index.js"></script>
+  <script src="./trend_cache.js"></script>
+  <script src="./ws_throttle.js"></script>
+  <script src="./report_mapping.js"></script>
+  <script src="./api_params.js"></script>
+  <script src="./rule_set_select.js"></script>
+  <script src="./alert_actions.js"></script>
+  <script src="./app.js"></script>
+  </body>
+</html>
+
+
+
+
+
+

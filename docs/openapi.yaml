@@ -1,0 +1,395 @@
+openapi: 3.0.3
+info:
+  title: Takeout Guard API
+  version: 0.1.0
+servers:
+  - url: /api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Login
+      responses:
+        "200": { description: OK }
+  /auth/register:
+    post:
+      summary: Register
+      responses:
+        "200": { description: OK }
+  /orders/manual-import:
+    post:
+      summary: Manual import order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreate"
+      responses:
+        "200":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderOut"
+  /edge/sessions/{sessionId}/events:
+    post:
+      summary: Edge sensor events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EdgeEventIn"
+      responses:
+        "200": { description: OK }
+  /edge/devices/{deviceId}/config:
+    get:
+      summary: Edge pull device config
+      responses:
+        "200": { description: OK }
+  /orders:
+    get:
+      summary: List orders
+      responses:
+        "200": { description: OK }
+  /orders/{orderId}:
+    get:
+      summary: Get order detail
+      responses:
+        "200": { description: OK }
+  /orders/{orderId}/timeline:
+    get:
+      summary: Get order status timeline
+      responses:
+        "200": { description: OK }
+  /orders/export/csv:
+    get:
+      summary: Export orders CSV
+      responses:
+        "200": { description: OK }
+  /orders/{orderId}/arm:
+    post:
+      summary: Arm order monitoring
+      responses:
+        "200": { description: OK }
+  /orders/{orderId}/confirm-pickup:
+    post:
+      summary: Confirm pickup
+      responses:
+        "200": { description: OK }
+  /alerts:
+    get:
+      summary: List alerts
+      responses:
+        "200": { description: OK }
+  /alerts/{incidentId}/ack:
+    post:
+      summary: Acknowledge alert
+      responses:
+        "200": { description: OK }
+  /alerts/{incidentId}:
+    get:
+      summary: Get alert detail
+      responses:
+        "200": { description: OK }
+  /alerts/{incidentId}/resolve:
+    post:
+      summary: Resolve alert
+      responses:
+        "200": { description: OK }
+  /alerts/{incidentId}/false-positive:
+    post:
+      summary: Mark false positive
+      responses:
+        "200": { description: OK }
+  /alerts/export/csv:
+    get:
+      summary: Export alerts CSV
+      responses:
+        "200": { description: OK }
+  /devices/{deviceId}:
+    get:
+      summary: Get device detail
+      responses:
+        "200": { description: OK }
+    patch:
+      summary: Update device
+      responses:
+        "200": { description: OK }
+  /devices/{deviceId}/config:
+    patch:
+      summary: Update device config
+      responses:
+        "200": { description: OK }
+  /devices/{deviceId}/apply-preset:
+    post:
+      summary: Apply device preset
+      responses:
+        "200": { description: OK }
+  /devices/{deviceId}/health:
+    get:
+      summary: Device health
+      responses:
+        "200": { description: OK }
+  /devices:
+    get:
+      summary: List devices
+      responses:
+        "200": { description: OK }
+  /devices/register:
+    post:
+      summary: Register device
+      responses:
+        "200": { description: OK }
+  /evidence/{incidentId}:
+    get:
+      summary: Get evidence bundle
+      responses:
+        "200": { description: OK }
+  /evidence/{incidentId}/download:
+    get:
+      summary: Download evidence zip
+      responses:
+        "200": { description: OK }
+  /evidence/{incidentId}/generate:
+    post:
+      summary: Generate evidence bundle
+      responses:
+        "200": { description: OK }
+  /media/upload:
+    post:
+      summary: Upload media
+      responses:
+        "200": { description: OK }
+  /media/{mediaId}/download:
+    get:
+      summary: Download media file
+      responses:
+        "200": { description: OK }
+  /me/push-subscriptions:
+    post:
+      summary: Add push subscription
+      responses:
+        "200": { description: OK }
+  /me:
+    get:
+      summary: Get current user
+      responses:
+        "200": { description: OK }
+  /whitelist/verify-code:
+    post:
+      summary: Verify pickup code
+      responses:
+        "200": { description: OK }
+  /audit:
+    get:
+      summary: List audit logs
+      responses:
+        "200": { description: OK }
+  /audit/export/csv:
+    get:
+      summary: Export audit CSV
+      responses:
+        "200": { description: OK }
+  /integrations/mock/delivered/{orderId}:
+    post:
+      summary: Mock delivery update
+      responses:
+        "200": { description: OK }
+  /integrations/providers/{provider}/order-status:
+    post:
+      summary: Provider order status webhook
+      parameters:
+        - in: header
+          name: X-Provider-Timestamp
+          schema:
+            type: string
+          required: true
+          description: Unix timestamp in seconds
+        - in: header
+          name: X-Provider-Signature
+          schema:
+            type: string
+          required: true
+          description: HMAC SHA256 signature of "{timestamp}.{raw_body}"
+        - in: header
+          name: X-Provider-Nonce
+          schema:
+            type: string
+          required: false
+          description: Optional nonce for replay protection
+        - in: header
+          name: X-Provider-Event-Id
+          schema:
+            type: string
+          required: false
+          description: Optional event id for idempotency
+      responses:
+        "200": { description: OK (duplicate returns {"ok": true, "duplicate": true}) }
+  /config:
+    get:
+      summary: Get public config
+      responses:
+        "200": { description: OK }
+  /reports/summary:
+    get:
+      summary: Summary metrics
+      responses:
+        "200": { description: OK }
+  /reports/summary/export:
+    get:
+      summary: Export summary CSV
+      responses:
+        "200": { description: OK }
+  /reports/trends:
+    get:
+      summary: Trends (daily/weekly)
+      parameters:
+        - in: query
+          name: scope
+          schema:
+            type: string
+            enum: [user, global]
+          description: user or global (admin only)
+        - in: query
+          name: days
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+          description: lookback days for daily trends
+        - in: query
+          name: interval
+          schema:
+            type: string
+            enum: [day, week]
+          description: day or week aggregation
+        - in: query
+          name: weeks
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: lookback weeks for weekly trends (optional)
+      responses:
+        "200": { description: OK }
+  /reports/trends/export:
+    get:
+      summary: Export trends CSV
+      responses:
+        "200": { description: OK }
+  /reports/rule-matches/export:
+    get:
+      summary: Export rule match logs CSV
+      responses:
+        "200": { description: OK }
+  /rules/sets:
+    get:
+      summary: List rule sets
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Create rule set
+      responses:
+        "200": { description: OK }
+  /rules/sets/{setId}:
+    patch:
+      summary: Update rule set
+      responses:
+        "200": { description: OK }
+  /rules/sets/{setId}/rules:
+    get:
+      summary: List rules
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Create rule
+      responses:
+        "200": { description: OK }
+  /rules/rules/{ruleId}:
+    patch:
+      summary: Update rule
+      responses:
+        "200": { description: OK }
+    delete:
+      summary: Delete rule
+      responses:
+        "200": { description: OK }
+  /rules/matches:
+    get:
+      summary: List rule match logs
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+        - in: query
+          name: include_suppressed
+          schema:
+            type: boolean
+        - in: query
+          name: event_type
+          schema:
+            type: string
+        - in: query
+          name: rule_id
+          schema:
+            type: string
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [24h, 7d, 30d, all]
+      responses:
+        "200": { description: OK }
+  /whitelist:
+    get:
+      summary: List whitelist profiles
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Create whitelist profile
+      responses:
+        "200": { description: OK }
+  /whitelist/{profileId}/issue-code:
+    post:
+      summary: Issue pickup code
+      responses:
+        "200": { description: OK }
+  /whitelist/verify-code:
+    post:
+      summary: Verify pickup code
+      responses:
+        "200": { description: OK }
+components:
+  schemas:
+    OrderCreate:
+      type: object
+      properties:
+        provider: { type: string, example: manual }
+        providerOrderId: { type: string, nullable: true }
+        merchantName: { type: string, nullable: true }
+        itemSummary: { type: string, nullable: true }
+    OrderOut:
+      type: object
+      properties:
+        id: { type: string }
+        provider: { type: string }
+        status: { type: string }
+        deliveredAt: { type: string, nullable: true, format: date-time }
+        expectedPickupBy: { type: string, nullable: true, format: date-time }
+    EdgeEventIn:
+      type: object
+      properties:
+        eventType: { type: string }
+        severity: { type: string, default: info }
+        eventTime: { type: string, format: date-time }
+        metrics: { type: object }

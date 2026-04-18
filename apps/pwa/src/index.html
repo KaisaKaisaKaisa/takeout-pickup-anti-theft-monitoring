@@ -1,0 +1,2344 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!doctype html>
+
+
+<html lang="zh-CN">
+
+
+  <head>
+
+
+    <meta charset="utf-8" />
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>外卖防盗监控系统</title>
+
+
+    <link rel="stylesheet" href="./styles.css?v=20260417-console-copy-fix" />
+
+
+  </head>
+
+
+  <body data-theme="aqua" data-motion="normal" data-grid="normal">
+
+
+    <div class="ambient-lines" aria-hidden="true">
+
+
+      <svg class="ambient-svg primary" viewBox="0 0 600 320" role="presentation">
+
+
+        <path class="ambient-path" d="M20 220 C120 90 220 60 320 140 C420 220 520 200 580 120" />
+
+
+        <path class="ambient-path alt" d="M10 260 C160 160 250 180 330 230 C410 280 500 240 590 200" />
+
+
+        <circle class="ambient-node" cx="320" cy="140" r="5" />
+
+
+        <circle class="ambient-node alt" cx="520" cy="190" r="4" />
+
+
+      </svg>
+
+
+      <svg class="ambient-svg secondary" viewBox="0 0 520 260" role="presentation">
+
+
+        <path class="ambient-path soft" d="M18 200 C120 80 210 80 300 130 C380 180 460 170 502 110" />
+
+
+        <path class="ambient-path alt" d="M8 230 C140 150 210 160 290 210 C360 250 440 220 500 180" />
+
+
+        <circle class="ambient-node" cx="300" cy="130" r="4" />
+
+
+      </svg>
+
+
+    </div>
+
+    <div class="cyber-veil" aria-hidden="true">
+      <span class="veil glow"></span>
+      <span class="veil grid"></span>
+      <span class="veil scan"></span>
+    </div>
+
+    <div class="app">
+
+
+      <header class="topbar">
+
+
+        <div class="brand-shell">
+
+
+          <div class="brand">
+
+
+            <div class="brand-mark">TG</div>
+
+
+            <div class="brand-text">
+
+
+              <span>外卖防盗监控</span>
+
+
+              <small>科技艺术 · 高端守护</small>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="brand-signal">
+
+
+            <span class="brand-signal-dot"></span>
+
+
+            <span>品牌中枢在线</span>
+
+
+          </div>
+
+
+        </div>
+
+
+        <nav class="nav" aria-label="Primary">
+
+
+          <a href="#overview">概览</a>
+
+
+          <a href="#console">控制台</a>
+
+
+          <a href="#mission">案例</a>
+
+
+          <a href="#gallery">模板</a>
+
+
+          <a href="#motion">动效</a>
+
+
+          <a href="#workflow">流程</a>
+
+
+          <a href="#reports">报表</a>
+
+
+          <a href="#rules">规则</a>
+
+
+          <a href="#ops">运维</a>
+
+
+        </nav>
+
+
+        <div class="top-actions">
+
+
+          <button class="ghost" id="top-docs-btn" type="button">文档</button>
+
+
+          <button class="primary" id="top-guard-btn" type="button">启动防护</button>
+
+
+        </div>
+
+
+      </header>
+
+
+
+
+
+      <main>
+
+
+        <section class="hero" id="overview" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="hero-command-rail">
+          <div class="hero-copy">
+
+
+            <div class="hero-status">
+
+
+              <span class="eyebrow">智能守护</span>
+
+
+              <span class="hero-badge">品牌级安全中枢</span>
+
+
+            </div>
+
+
+            <div class="hero-title-group">
+              <div class="hero-lead">
+                <span class="hero-lead-line"></span>
+                <span>全链路监控叙事</span>
+              </div>
+
+
+              <h1>以科技艺术构建外卖取餐防盗的全链路监控</h1>
+
+
+              <p>
+                融合视觉感知、重量监测与订单回调，实时识别异常取餐，自动留存证据并推送告警。面向校园、公寓楼与集中配餐点的高端防护平台。
+              </p>
+
+
+            </div>
+
+
+            <div class="hero-actions">
+
+
+              <button class="primary" id="hero-connect-btn" type="button">立即接入</button>
+
+
+              <button class="ghost" id="hero-demo-btn" type="button">演示模式</button>
+
+
+            </div>
+
+
+            <div class="hero-meta">系统运行状态：守护中 · 预警响应 180ms</div>
+
+
+            <div class="hero-proof hero-proof-rail" data-proof-rail="live">
+
+
+              <div class="metric">
+
+
+                <span class="metric-label">活跃监控</span>
+
+
+                <strong id="hero-sessions">0</strong>
+
+
+                <span class="metric-note">多点位联防</span>
+
+
+              </div>
+
+
+              <div class="metric">
+
+
+                <span class="metric-label">今日告警</span>
+
+
+                <strong id="hero-alerts">0</strong>
+
+
+                <span class="metric-note">异常即时推送</span>
+
+
+              </div>
+
+
+              <div class="metric">
+
+
+                <span class="metric-label">在线设备</span>
+
+
+                <strong id="hero-devices">0</strong>
+
+
+                <span class="metric-note">边缘联动同步</span>
+
+
+              </div>
+
+
+            </div>
+
+
+          </div>
+          <div class="hero-scroll-cue" aria-hidden="true">
+            <span class="hero-scroll-line"></span>
+            <span class="hero-scroll-text">Scroll to Command Deck</span>
+          </div>
+          </div>
+
+
+
+
+
+          <div class="hero-visual hero-visual-shell">
+
+
+            <div class="signal-card">
+
+
+              <div class="signal-stage">
+
+
+                <span class="signal-stage-label">实时态势视窗</span>
+
+
+                <span class="signal-stage-meta">订单、设备、告警统一映射</span>
+
+
+              </div>
+
+
+              <div class="signal-head">
+
+
+                <span>实时波形</span>
+
+
+                <span class="pill">在线</span>
+
+
+              </div>
+
+
+              <svg class="signal-svg" viewBox="0 0 360 220" role="img" aria-label="Monitoring waveform">
+
+
+                <path class="trace" d="M20 150 C60 90 100 60 140 90 C170 110 200 120 240 70 C270 35 310 50 340 100" />
+
+
+                <path class="trace delay" d="M20 180 C80 120 120 140 160 160 C200 185 260 170 340 140" />
+
+
+                <circle class="pulse" cx="120" cy="88" r="10" />
+
+
+                <circle class="pulse delay" cx="260" cy="78" r="12" />
+
+
+              </svg>
+
+
+              <div class="signal-footer">
+
+
+                <span>延迟 180ms</span>
+
+
+                <span>同步正常</span>
+
+
+              </div>
+
+
+            </div>
+
+            <div class="metric-grid">
+
+
+              <div class="metric-grid-line"></div>
+
+
+              <div class="metric-grid-note">主视窗负责品牌记忆，证明带负责可信支撑。</div>
+
+
+            </div>
+
+
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel style-console" id="console" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="section-role section-role-command" aria-hidden="true">
+            <span>Command Deck</span>
+            <span>Theme / Motion / Grid</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>视觉控制台</h2>
+
+
+            <div class="panel-actions">
+
+
+              <button class="ghost" id="console-float-toggle" type="button">浮动</button>
+
+
+              <button class="ghost" id="console-test-toggle" type="button">测试模式</button>
+
+
+              <button class="ghost" id="console-demo-toggle" type="button">演示模式</button>
+
+
+              <button class="ghost" id="console-demo-pause" type="button">暂停</button>
+
+
+              <button class="ghost" id="console-collapse-toggle" type="button">折叠</button>
+
+
+              <button class="ghost console-drag" id="console-drag-handle" type="button">拖动</button>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="console-body">
+
+
+            <span class="hint">切换主题、光效与动效密度，实时调整赛博氛围。</span>
+
+
+            <div class="demo-bar" aria-hidden="true">
+
+
+              <span class="demo-bar-fill"></span>
+
+
+              <span class="demo-bar-label" id="demo-bar-label">演示进度</span>
+
+
+              <span class="demo-beat" id="demo-beat"></span>
+
+
+            </div>
+
+
+            <div class="console-grid">
+
+
+              <div class="console-card">
+
+
+                <h3>主色光谱</h3>
+
+
+                <div class="swatch-row">
+
+
+                  <button class="swatch" data-theme="aqua" aria-label="Aqua"></button>
+
+
+                  <button class="swatch" data-theme="azur" aria-label="Azur"></button>
+
+
+                  <button class="swatch" data-theme="ember" aria-label="Ember"></button>
+
+
+                  <button class="swatch" data-theme="lime" aria-label="Lime"></button>
+
+
+                </div>
+
+
+                <div class="meta">默认高端青蓝，覆盖冷暖赛博光谱。</div>
+
+
+              </div>
+
+
+              <div class="console-card">
+
+
+                <h3>动效密度</h3>
+
+
+                <div class="toggle-row">
+
+
+                  <button class="toggle-btn" data-motion="quiet">柔和</button>
+
+
+                  <button class="toggle-btn" data-motion="normal">均衡</button>
+
+
+                  <button class="toggle-btn" data-motion="boost">强化</button>
+
+
+                </div>
+
+
+                <div class="meta">影响波形与路径描边密度。</div>
+
+
+              </div>
+
+
+              <div class="console-card">
+
+
+                <h3>网格强度</h3>
+
+
+                <div class="toggle-row">
+
+
+                  <button class="toggle-btn" data-grid="soft">低噪</button>
+
+
+                  <button class="toggle-btn" data-grid="normal">均衡</button>
+
+
+                  <button class="toggle-btn" data-grid="dense">高能</button>
+
+
+                </div>
+
+
+                <div class="meta">调整背景能量纹理与层次。</div>
+
+
+              </div>
+
+
+            </div>
+
+
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="mission" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="showcase-suite">
+          <div class="section-role section-role-showcase" aria-hidden="true">
+            <span>Showcase Layer</span>
+            <span>Proof / Scenario / Trust</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>案例展示</h2>
+
+
+            <div class="panel-actions">
+
+
+              <button class="ghost" id="cases-view-all-btn" type="button">查看全部</button>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="filter-bar" data-target="#case-grid" data-filter-bar="cases">
+
+
+            <span class="filter-label">筛选</span>
+
+
+            <button class="filter-btn" data-filter="all">全部</button>
+
+
+            <button class="filter-btn" data-filter="campus">校园</button>
+
+
+            <button class="filter-btn" data-filter="residence">公寓</button>
+
+
+            <button class="filter-btn" data-filter="enterprise">企业</button>
+
+
+            <button class="filter-btn" data-filter="night">深夜</button>
+
+
+          </div>
+
+
+          <div class="case-grid" id="case-grid">
+
+
+            <article class="case-card" data-tags="campus night">
+
+
+              <div class="case-tag">校园 · 深夜配餐</div>
+
+
+              <h3>智能取餐区联防</h3>
+
+
+              <p>多点位摄像头 + 重量传感联合判断异常取餐，告警时间缩短 43%。</p>
+
+
+              <div class="case-meta">
+
+
+                <span>6 栋公寓</span>
+
+
+                <span>24/7 监控</span>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="case-card" data-tags="residence whitelist">
+
+
+              <div class="case-tag">公寓 · 多人共享</div>
+
+
+              <h3>白名单柔性防护</h3>
+
+
+              <p>室友授权 + 动态取餐码，减少误报 61%，提升安全与体验平衡。</p>
+
+
+              <div class="case-meta">
+
+
+                <span>18 层楼</span>
+
+
+                <span>200+ 订单/日</span>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="case-card" data-tags="enterprise evidence">
+
+
+              <div class="case-tag">企业 · 集中配餐</div>
+
+
+              <h3>一键取证闭环</h3>
+
+
+              <p>自动剪辑证据片段并上传云端，支持法务留档与责任追溯。</p>
+
+
+              <div class="case-meta">
+
+
+                <span>3 年存证</span>
+
+
+                <span>99.9% 完整率</span>
+
+
+              </div>
+
+
+            </article>
+
+
+          </div>
+
+
+          <div class="case-timeline">
+
+
+            <div class="timeline-step">
+
+
+              <span class="step-index">01</span>
+
+
+              <div>
+
+
+                <strong>订单回调接入</strong>
+
+
+                <p>实时获取送达状态，自动触发监控与提醒。</p>
+
+
+              </div>
+
+
+            </div>
+
+
+            <div class="timeline-step">
+
+
+              <span class="step-index">02</span>
+
+
+              <div>
+
+
+                <strong>多传感融合识别</strong>
+
+
+                <p>动作、重量与 ROI 异常评分智能融合。</p>
+
+
+              </div>
+
+
+            </div>
+
+
+            <div class="timeline-step">
+
+
+              <span class="step-index">03</span>
+
+
+              <div>
+
+
+                <strong>告警 + 取证闭环</strong>
+
+
+                <p>推送、录制、云端备份同步完成。</p>
+
+
+              </div>
+
+
+            </div>
+
+
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="gallery" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="showcase-suite">
+          <div class="section-role section-role-showcase" aria-hidden="true">
+            <span>Template Gallery</span>
+            <span>Product Capabilities</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>场景模板</h2>
+
+
+            <div class="panel-actions">
+
+
+              <button class="ghost" id="templates-view-all-btn" type="button">浏览全部</button>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="filter-bar" data-target="#template-grid" data-filter-bar="templates">
+
+
+            <span class="filter-label">筛选</span>
+
+
+            <button class="filter-btn" data-filter="all">全部</button>
+
+
+            <button class="filter-btn" data-filter="campus">校园</button>
+
+
+            <button class="filter-btn" data-filter="residence">公寓</button>
+
+
+            <button class="filter-btn" data-filter="enterprise">企业</button>
+
+
+            <button class="filter-btn" data-filter="night">深夜</button>
+
+
+            <button class="filter-btn" data-filter="data">数据</button>
+
+
+          </div>
+
+
+          <div class="template-grid" id="template-grid">
+
+
+            <article class="template-card" data-tags="mini">
+
+
+              <div class="template-preview"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Mini Zone</div>
+
+
+                <h3>智能货架联防</h3>
+
+
+                <p>针对小型外卖柜的轻量部署模板。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="template-card" data-tags="campus">
+
+
+              <div class="template-preview alt"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Campus</div>
+
+
+                <h3>宿舍集群监控</h3>
+
+
+                <p>多点位摄像头与重量传感联合策略。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="template-card" data-tags="residence">
+
+
+              <div class="template-preview mint"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Residence</div>
+
+
+                <h3>多租户协同</h3>
+
+
+                <p>白名单授权与取餐码统一管理。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="template-card" data-tags="enterprise">
+
+
+              <div class="template-preview cyan"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Enterprise</div>
+
+
+                <h3>企业配送点</h3>
+
+
+                <p>集中式告警与取证闭环。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="template-card" data-tags="night">
+
+
+              <div class="template-preview rose"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Night Shift</div>
+
+
+                <h3>深夜监控方案</h3>
+
+
+                <p>弱光增强与异常触发保护。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="template-card" data-tags="data">
+
+
+              <div class="template-preview purple"></div>
+
+
+              <div class="template-body">
+
+
+                <div class="template-tag">Data Lab</div>
+
+
+                <h3>数据中心模板</h3>
+
+
+                <p>多报表与规则集全量洞察。</p>
+
+
+              </div>
+
+
+              <div class="template-footer">
+
+
+                <button class="ghost">查看</button>
+
+
+                <button class="primary">立即启用</button>
+
+
+              </div>
+
+
+            </article>
+
+
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="motion" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="showcase-suite">
+          <div class="section-role section-role-showcase" aria-hidden="true">
+            <span>Motion Lab</span>
+            <span>Brand Experiments</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>动效案例</h2>
+
+
+            <div class="panel-actions">
+
+
+              <span class="pill">SVG LAB</span>
+
+
+              <button class="ghost" id="motion-assets-btn" type="button">打开素材</button>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="filter-bar" data-target="#motion-grid" data-filter-bar="motion">
+
+
+            <span class="filter-label">筛选</span>
+
+
+            <button class="filter-btn" data-filter="all">全部</button>
+
+
+            <button class="filter-btn" data-filter="alarm">告警</button>
+
+
+            <button class="filter-btn" data-filter="vision">视觉</button>
+
+
+            <button class="filter-btn" data-filter="evidence">取证</button>
+
+
+          </div>
+
+
+          <div class="motion-grid" id="motion-grid">
+
+
+            <article class="motion-card" data-tags="alarm">
+
+
+              <div class="motion-preview">
+
+
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Alarm flow animation">
+
+
+                  <path class="motion-path" d="M10 90 C40 30 80 30 110 70 C130 90 160 100 220 40" />
+
+
+                  <path class="motion-path alt" d="M20 100 C60 70 90 80 120 95 C150 110 190 90 230 70" />
+
+
+                  <circle class="motion-node" cx="108" cy="70" r="6" />
+
+
+                  <circle class="motion-node alt" cx="200" cy="50" r="5" />
+
+
+                </svg>
+
+
+              </div>
+
+
+              <div class="motion-body">
+
+
+                <div class="motion-tag">Alarm Flow</div>
+
+
+                <h3>告警路径映射</h3>
+
+
+                <p>多源事件轨迹描边，实时展示触发链路与抑制节点。</p>
+
+
+              </div>
+
+
+              <div class="motion-meta">
+
+
+                <span>6 节点</span>
+
+
+                <span>180ms</span>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="motion-card" data-tags="vision">
+
+
+              <div class="motion-preview">
+
+
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Vision mesh animation">
+
+
+                  <path class="motion-path alt" d="M12 80 C60 20 110 20 150 60 C170 78 200 92 228 72" />
+
+
+                  <path class="motion-path" d="M18 96 C58 76 96 86 126 102 C152 114 182 100 220 84" />
+
+
+                  <circle class="motion-node" cx="148" cy="60" r="6" />
+
+
+                  <circle class="motion-node alt" cx="86" cy="52" r="4" />
+
+
+                </svg>
+
+
+              </div>
+
+
+              <div class="motion-body">
+
+
+                <div class="motion-tag">Vision Mesh</div>
+
+
+                <h3>视觉守护网格</h3>
+
+
+                <p>低功耗监控视野动画化，实时标注异常区域。</p>
+
+
+              </div>
+
+
+              <div class="motion-meta">
+
+
+                <span>多 ROI</span>
+
+
+                <span>24/7</span>
+
+
+              </div>
+
+
+            </article>
+
+
+            <article class="motion-card" data-tags="evidence">
+
+
+              <div class="motion-preview">
+
+
+                <svg class="motion-svg" viewBox="0 0 240 120" role="img" aria-label="Evidence trail animation">
+
+
+                  <path class="motion-path" d="M16 84 C40 50 70 40 100 58 C130 76 160 86 210 56" />
+
+
+                  <path class="motion-path alt" d="M20 104 C60 86 92 98 128 110 C168 124 206 108 226 92" />
+
+
+                  <circle class="motion-node" cx="100" cy="58" r="5" />
+
+
+                  <circle class="motion-node alt" cx="210" cy="56" r="6" />
+
+
+                </svg>
+
+
+              </div>
+
+
+              <div class="motion-body">
+
+
+                <div class="motion-tag">Evidence Trail</div>
+
+
+                <h3>取证轨迹回放</h3>
+
+
+                <p>自动打点取证片段，回放路径即刻生成。</p>
+
+
+              </div>
+
+
+              <div class="motion-meta">
+
+
+                <span>3 片段</span>
+
+
+                <span>24h 保留</span>
+
+
+              </div>
+
+
+            </article>
+
+
+          </div>
+
+
+          <div class="motion-strip">
+
+
+            <span class="chip">路径叠加</span>
+
+
+            <span class="chip">节点纹理</span>
+
+
+            <span class="chip">光谱呼吸</span>
+
+
+            <span class="chip">视觉节奏</span>
+
+
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="workflow" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="showcase-suite">
+          <div class="section-role section-role-showcase" aria-hidden="true">
+            <span>Flow Chain</span>
+            <span>From Trigger to Evidence</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>一体化防护流程</h2>
+
+
+            <span class="hint">从订单触达到取证归档，四步完成闭环。</span>
+
+
+          </div>
+
+
+          <div class="workflow-grid">
+
+
+            <div class="workflow-step">
+
+
+              <span class="workflow-index">01</span>
+
+
+              <h3>订单触发</h3>
+
+
+              <p>平台回调或手动导入，启动监控与提醒。</p>
+
+
+            </div>
+
+
+            <div class="workflow-step">
+
+
+              <span class="workflow-index">02</span>
+
+
+              <h3>多源感知</h3>
+
+
+              <p>摄像头、重量与动作评分融合判定。</p>
+
+
+            </div>
+
+
+            <div class="workflow-step">
+
+
+              <span class="workflow-index">03</span>
+
+
+              <h3>规则引擎</h3>
+
+
+              <p>全局与个人规则并行，精准抑制误报。</p>
+
+
+            </div>
+
+
+            <div class="workflow-step">
+
+
+              <span class="workflow-index">04</span>
+
+
+              <h3>告警取证</h3>
+
+
+              <p>推送告警、证据录像、云端封存。</p>
+
+
+            </div>
+
+
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="reports" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="command-center-panel">
+          <div class="section-role section-role-command" aria-hidden="true">
+            <span>Data Command</span>
+            <span>Metrics / Trends / Export</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>报表</h2>
+
+
+            <div class="panel-actions">
+
+
+              <select id="trend-interval">
+
+
+                <option value="day">日趋势</option>
+
+
+                <option value="week">周趋势</option>
+
+
+              </select>
+
+
+              <div class="date-range">
+
+
+                <input type="date" id="report-start" class="ghost" />
+
+
+                <span class="muted">至</span>
+
+
+                <input type="date" id="report-end" class="ghost" />
+
+
+                <button id="clear-report-range" class="ghost small">清空</button>
+
+
+              </div>
+
+
+              <button id="refresh-reports" class="ghost">刷新</button>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="command-shell command-shell-data">
+          <div class="summary-grid">
+
+
+            <div class="summary-card">
+
+
+              <span>订单</span>
+
+
+              <strong id="summary-orders">0</strong>
+
+
+              <div class="meta" id="summary-orders-meta">created 0 · delivered 0 · picked 0</div>
+
+
+            </div>
+
+
+            <div class="summary-card">
+
+
+              <span>告警</span>
+
+
+              <strong id="summary-alerts">0</strong>
+
+
+              <div class="meta" id="summary-alerts-meta">open 0 · resolved 0 · false 0</div>
+
+
+            </div>
+
+
+            <div class="summary-card">
+
+
+              <span>设备</span>
+
+
+              <strong id="summary-devices">0</strong>
+
+
+              <div class="meta" id="summary-devices-meta">online 0 · offline 0</div>
+
+
+            </div>
+
+
+            <div class="summary-card">
+
+
+              <span>监控会话</span>
+
+
+              <strong id="summary-sessions">0</strong>
+
+
+              <div class="meta" id="summary-sessions-meta">armed 0 · alerted 0 · confirmed 0</div>
+
+
+            </div>
+
+
+            <div class="summary-card">
+
+
+              <span>事件（24h）</span>
+
+
+              <strong id="summary-events">0</strong>
+
+
+              <div class="meta">近 24 小时传感器事件</div>
+
+
+            </div>
+
+
+            <div class="summary-card">
+
+
+              <span>规则命中</span>
+
+
+              <strong id="summary-rules">0</strong>
+
+
+              <div class="meta" id="summary-rules-meta">suppressed 0</div>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="report-actions command-toolbar">
+
+
+            <button id="export-summary" class="ghost">导出摘要 CSV</button>
+
+
+            <button id="export-trends" class="ghost">导出趋势 CSV</button>
+
+
+            <button id="export-rule-matches" class="ghost">导出规则命中 CSV</button>
+
+
+          </div>
+
+
+          <div class="trend-grid">
+
+
+            <div class="trend-card">
+
+
+              <h3>订单</h3>
+
+
+              <div class="trend-bars" id="trend-orders"></div>
+
+
+              <div class="trend-meta" id="trend-orders-meta"></div>
+
+
+            </div>
+
+
+            <div class="trend-card">
+
+
+              <h3>告警</h3>
+
+
+              <div class="trend-bars" id="trend-alerts"></div>
+
+
+              <div class="trend-meta" id="trend-alerts-meta"></div>
+
+
+            </div>
+
+
+            <div class="trend-card">
+
+
+              <h3>事件</h3>
+
+
+              <div class="trend-bars" id="trend-events"></div>
+
+
+              <div class="trend-meta" id="trend-events-meta"></div>
+
+
+            </div>
+
+
+            <div class="trend-card">
+
+
+              <h3>规则命中</h3>
+
+
+              <div class="trend-bars" id="trend-rule-matches"></div>
+
+
+              <div class="trend-meta" id="trend-rules-meta"></div>
+
+
+            </div>
+
+
+            <div class="trend-card">
+
+
+              <h3>设备</h3>
+
+
+              <div class="trend-bars" id="trend-devices"></div>
+
+
+              <div class="trend-meta" id="trend-devices-meta"></div>
+
+
+            </div>
+
+
+            <div class="trend-card">
+
+
+              <h3>监控会话</h3>
+
+
+              <div class="trend-bars" id="trend-sessions"></div>
+
+
+              <div class="trend-meta" id="trend-sessions-meta"></div>
+
+
+            </div>
+
+
+          </div>
+
+
+          <div class="trend-legend">
+
+
+            <span><i class="dot orders"></i>订单</span>
+
+
+            <span><i class="dot alerts"></i>告警</span>
+
+
+            <span><i class="dot devices"></i>设备</span>
+
+
+            <span><i class="dot sessions"></i>会话</span>
+
+
+            <span><i class="dot events"></i>事件</span>
+
+
+            <span><i class="dot rules"></i>规则</span>
+
+
+          </div>
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="ops" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="command-center-panel">
+          <div class="section-role section-role-command" aria-hidden="true">
+            <span>Ops Station</span>
+            <span>Import / Config / Audit</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>运维中心</h2>
+
+
+          </div>
+
+
+          <div class="command-shell command-shell-cabinet">
+          <div class="grid three">
+
+
+            <div class="ops-card">
+
+
+              <h3>订单导入</h3>
+
+
+              <form id="import-form" class="import-form">
+
+
+                <div class="form-row">
+
+
+                  <label for="merchant">商家</label>
+
+
+                  <input type="text" id="merchant" placeholder="Coffee Lab" />
+
+
+                </div>
+
+
+                <div class="form-row">
+
+
+                  <label for="summary">商品摘要</label>
+
+
+                  <input type="text" id="summary" placeholder="Latte + pastry" />
+
+
+                </div>
+
+
+                <div class="form-row">
+
+
+                  <label for="pickup-window">预期取餐（分钟）</label>
+
+
+                  <input type="number" id="pickup-window" value="30" min="5" max="180" />
+
+
+                </div>
+
+
+                <div class="form-actions">
+
+
+                  <button type="submit" class="primary">导入订单</button>
+
+
+                  <button type="button" id="enable-push" class="ghost">启用推送</button>
+
+
+                </div>
+
+
+              </form>
+
+
+              <div class="hint">演示账号自动登录后可使用“模拟送达”测试告警。</div>
+
+
+            </div>
+
+
+            <div class="ops-card">
+
+
+              <h3>设备配置</h3>
+
+
+              <div class="form-row">
+
+
+                <label for="min-motion">最小动作分数</label>
+
+
+                <input type="number" id="min-motion" value="5000" />
+
+
+              </div>
+
+
+              <div class="form-row">
+
+
+                <label for="max-drop">最大重量下降（负数）</label>
+
+
+                <input type="number" id="max-drop" value="-300" />
+
+
+              </div>
+
+
+              <button id="save-config" class="ghost">保存配置</button>
+
+
+              <button id="refresh-devices" class="ghost">刷新设备</button>
+
+
+              <span id="selected-device" class="pill">当前选择：无</span>
+
+
+            </div>
+
+
+            <div class="ops-card">
+
+
+              <h3>快速验证</h3>
+
+
+              <div class="form-row">
+
+
+                <label for="pickup-code">取餐码</label>
+
+
+                <input type="text" id="pickup-code" placeholder="6 位动态码" />
+
+
+              </div>
+
+
+              <button id="verify-code-btn" class="ghost">验证取餐码</button>
+
+
+              <div class="divider"></div>
+
+
+              <div class="ops-subhead">
+
+
+                <span>审计日志</span>
+
+
+                <button id="load-audit" class="ghost">加载审计</button>
+
+
+              </div>
+
+
+              <ul id="audit-list" class="list compact"></ul>
+
+
+            </div>
+
+
+          </div>
+          </div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="rules" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="section-role section-role-command" aria-hidden="true">
+            <span>Rule Engine</span>
+            <span>Policies / Visibility / Control</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>规则引擎</h2>
+
+
+            <span class="hint">可视化规则集、全局策略与命中日志。</span>
+
+
+          </div>
+
+
+          <div class="command-shell command-shell-data">
+            <div id="rules-root"></div>
+          </div>
+
+
+        </section>
+
+
+
+
+
+        <section class="panel" id="orders" data-reveal>
+          <div class="panel-decor" aria-hidden="true">
+            <span class="corner tl"></span>
+            <span class="corner tr"></span>
+            <span class="corner bl"></span>
+            <span class="corner br"></span>
+            <span class="scanline"></span>
+          </div>
+
+
+          <div class="section-role section-role-command" aria-hidden="true">
+            <span>Orders Feed</span>
+            <span>Queue / Pickup / Status</span>
+          </div>
+
+
+          <div class="panel-head">
+
+
+            <h2>订单列表</h2>
+
+
+          </div>
+
+
+          <ul id="orders-list" class="list"></ul>
+
+
+        </section>
+
+
+
+
+
+        <div class="audit-chain-layout">
+
+
+          <section class="panel" id="rule-matches" data-reveal>
+            <div class="panel-decor" aria-hidden="true">
+              <span class="corner tl"></span>
+              <span class="corner tr"></span>
+              <span class="corner bl"></span>
+              <span class="corner br"></span>
+              <span class="scanline"></span>
+            </div>
+
+
+            <div class="audit-chain-panel audit-chain-origin">
+              <div class="section-role section-role-command" aria-hidden="true">
+                <span>Audit Origin</span>
+                <span>Match / Suppression / Trace</span>
+              </div>
+
+
+              <div class="panel-head">
+
+
+                <h2>规则命中日志</h2>
+
+
+                <div class="panel-actions command-toolbar">
+
+
+                  <select id="rule-match-filter">
+
+
+                    <option value="">全局规则集</option>
+
+
+                    <option value="motion">motion</option>
+
+
+                    <option value="object_missing">object_missing</option>
+
+
+                    <option value="weight_drop">weight_drop</option>
+
+
+                  </select>
+
+
+                  <select id="rule-match-range">
+
+
+                    <option value="24h">近 24 小时</option>
+
+
+                    <option value="7d">近 7 天</option>
+
+
+                    <option value="30d">近 30 天</option>
+
+
+                    <option value="all">全部</option>
+
+
+                  </select>
+
+
+                  <div class="date-range">
+
+
+                      <input type="date" id="rule-match-start" class="ghost" />
+
+
+                      <span class="muted">至</span>
+
+
+                      <input type="date" id="rule-match-end" class="ghost" />
+
+
+                    </div>
+
+
+                    <select id="rule-match-rule-set">
+
+
+                      <option value="">全局规则集</option>
+
+
+                    </select>
+
+
+                    <input id="rule-match-search" class="ghost" placeholder="搜索订单ID/规则ID" />
+
+
+                  <button id="load-rule-matches" class="ghost">加载日志</button>
+
+
+                  <label class="inline-check">
+
+
+                    <input type="checkbox" id="include-suppressed" />
+
+
+                    显示冷却命中
+
+
+                  </label>
+
+
+                </div>
+
+
+              </div>
+
+
+              <div class="meta">链路起点：追踪规则触发、冷却抑制与命中时间线。</div>
+
+
+              <div class="command-shell command-shell-data">
+                <div class="meta">用于排查规则触发与冷却抑制原因。</div>
+
+
+                <div class="list-shell">
+                  <ul id="rule-matches-list" class="list"></ul>
+                </div>
+
+
+                <div class="pager">
+
+
+                  <button id="rule-matches-prev" class="ghost">上一页</button>
+
+
+                  <span id="rule-matches-page" class="hint">第 1 页</span>
+
+
+                  <button id="rule-matches-next" class="ghost">下一页</button>
+
+
+                </div>
+              </div>
+            </div>
+
+
+          </section>
+
+
+
+
+
+          <div class="audit-chain-stage-grid">
+
+
+            <section class="panel" id="alerts" data-reveal>
+              <div class="panel-decor" aria-hidden="true">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+                <span class="scanline"></span>
+              </div>
+
+
+              <div class="audit-chain-panel alert-matrix-panel">
+                <div class="section-role section-role-command" aria-hidden="true">
+                  <span>Alert Matrix</span>
+                  <span>Escalation / Review / Dispatch</span>
+                </div>
+
+
+                <div class="panel-head">
+
+
+                  <h2>告警矩阵</h2>
+
+
+                  <span class="hint">从规则命中提炼待处理事件。</span>
+
+
+                </div>
+
+
+                <div class="command-shell command-shell-cabinet list-shell">
+                  <ul id="alerts-list" class="list"></ul>
+                </div>
+              </div>
+
+
+            </section>
+
+
+
+
+
+            <section class="panel" id="alert-detail" data-reveal>
+              <div class="panel-decor" aria-hidden="true">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+                <span class="scanline"></span>
+              </div>
+
+
+              <div class="audit-chain-panel evidence-bay-panel">
+                <div class="section-role section-role-command" aria-hidden="true">
+                  <span>Evidence Bay</span>
+                  <span>Payload / Media / Context</span>
+                </div>
+
+
+                <div class="panel-head">
+
+
+                  <h2>证据舱</h2>
+
+
+                  <span class="hint">载荷、媒体与上下文聚焦查看。</span>
+
+
+                </div>
+
+
+                <div class="command-shell command-shell-cabinet list-shell">
+                  <pre id="alert-detail-output" class="code"></pre>
+                  <div id="alert-media" class="media-list"></div>
+                </div>
+              </div>
+
+
+            </section>
+
+
+          </div>
+
+
+
+
+
+          <section class="panel" id="devices" data-reveal>
+            <div class="panel-decor" aria-hidden="true">
+              <span class="corner tl"></span>
+              <span class="corner tr"></span>
+              <span class="corner bl"></span>
+              <span class="corner br"></span>
+              <span class="scanline"></span>
+            </div>
+
+
+            <div class="audit-chain-panel support-bay-panel">
+              <div class="section-role section-role-command" aria-hidden="true">
+                <span>Support Bay</span>
+                <span>Health / Sync / Response</span>
+              </div>
+
+
+              <div class="panel-head">
+
+
+                <h2>设备支撑舱</h2>
+
+
+                <button id="load-health" class="ghost">加载健康</button>
+
+
+              </div>
+
+
+              <div class="command-shell command-shell-cabinet list-shell">
+                <ul id="devices-list" class="list"></ul>
+                <pre id="health-output" class="code"></pre>
+              </div>
+            </div>
+
+
+          </section>
+
+
+        </div>
+
+
+      </main>
+
+
+    </div>
+
+
+
+
+
+    <script>
+
+
+      window.API_BASE = window.API_BASE || "http://localhost:18000/api/v1";
+
+
+    </script>
+
+
+    <script src="./rule_dsl_editor.js?v=20260417-console-copy-fix"></script>
+
+
+    <script src="./rules.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./ws_logic.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./list_limit.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./rule_match_index.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./trend_cache.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./ws_throttle.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./report_mapping.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./api_params.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./rule_set_select.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./alert_actions.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./app.js?v=20260417-console-copy-fix"></script>
+
+
+  </body>
+
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

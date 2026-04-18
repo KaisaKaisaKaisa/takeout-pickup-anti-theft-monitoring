@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SVG Animate Style</title>
+    <link rel="stylesheet" href="./assets/svganimate.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="logo">SVG Animate</div>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html">Template Library</a>
+          <a href="#templates">Templates</a>
+          <a href="#playground">Playground</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <button class="primary">Generate</button>
+      </header>
+
+      <main>
+        <section class="hero" id="playground">
+          <div class="hero-copy">
+            <div class="badge">Tech-art SVG Motion Studio</div>
+            <h1>Elegant motion, engineered with precision.</h1>
+            <p>
+              Generate precise, lightweight SVG animations for icons, headers, and micro-interactions.
+              Export clean code with refined easing and studio-grade presets.
+            </p>
+            <div class="prompt">
+              <label for="prompt-input">Describe your animation</label>
+              <textarea id="prompt-input" rows="4" placeholder="e.g. draw a rocket, then pulse the stars"></textarea>
+              <div class="prompt-meta">
+                <span id="char-count" role="status" aria-live="polite">0 / 200</span>
+                <div class="toggle">
+                  <span>Pro motion</span>
+                  <button id="toggle-pro" class="toggle-btn" aria-pressed="false" aria-label="Toggle pro motion"></button>
+                </div>
+              </div>
+              <div class="prompt-actions">
+                <button class="primary">Generate animation</button>
+                <button class="ghost">Use example</button>
+              </div>
+            </div>
+            <div class="hero-stats">
+              <div>
+                <strong>12k+</strong>
+                <span>SVGs generated</span>
+              </div>
+              <div>
+                <strong>98%</strong>
+                <span>Export success</span>
+              </div>
+              <div>
+                <strong>0.4s</strong>
+                <span>Avg render time</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-preview">
+            <div class="preview-card">
+              <div class="preview-header">
+                <span>Live preview</span>
+                <span class="chip">SVG</span>
+              </div>
+              <svg class="preview-svg" viewBox="0 0 320 200" fill="none" role="img" aria-label="Animated SVG preview">
+                <path class="draw path-1" d="M40 140 C80 60, 140 40, 190 80 S280 150, 300 60" />
+                <circle class="pulse" cx="90" cy="70" r="18" />
+                <circle class="pulse delay" cx="220" cy="120" r="12" />
+                <path class="draw path-2" d="M30 170 L290 170" />
+              </svg>
+              <div class="preview-footer">
+                <span>Loop: 4s</span>
+                <span>Stroke: 2px</span>
+              </div>
+            </div>
+            <div class="mini-grid">
+              <div class="mini-card">
+                <svg viewBox="0 0 120 80" fill="none" aria-hidden="true">
+                  <path class="draw path-3" d="M10 60 Q60 10 110 60" />
+                </svg>
+                <span>Wave</span>
+              </div>
+              <div class="mini-card">
+                <svg viewBox="0 0 120 80" fill="none" aria-hidden="true">
+                  <rect class="dash" x="20" y="20" width="80" height="40" rx="8" />
+                </svg>
+                <span>Frame</span>
+              </div>
+              <div class="mini-card">
+                <svg viewBox="0 0 120 80" fill="none" aria-hidden="true">
+                  <path class="draw path-4" d="M20 40 L60 10 L100 40 L60 70 Z" />
+                </svg>
+                <span>Crystal</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="templates" id="templates">
+          <div class="section-head">
+            <h2>Animation templates</h2>
+            <button class="ghost">Browse all</button>
+          </div>
+          <div class="template-grid">
+            <article class="template-card">
+              <div class="template-preview">
+                <svg viewBox="0 0 180 120" fill="none" aria-hidden="true">
+                  <circle class="pulse" cx="60" cy="60" r="24" />
+                  <path class="draw path-5" d="M100 90 C130 40 160 30 170 50" />
+                </svg>
+              </div>
+              <h3>Pulse Orbit</h3>
+              <p>Soft orbital ripple with draw-in lines.</p>
+              <button class="primary">Use template</button>
+            </article>
+            <article class="template-card">
+              <div class="template-preview">
+                <svg viewBox="0 0 180 120" fill="none" aria-hidden="true">
+                  <rect class="dash" x="30" y="30" width="120" height="60" rx="12" />
+                  <path class="draw path-6" d="M50 60 L130 60" />
+                </svg>
+              </div>
+              <h3>Frame Reveal</h3>
+              <p>Outline frame and detail stroke.</p>
+              <button class="primary">Use template</button>
+            </article>
+            <article class="template-card">
+              <div class="template-preview">
+                <svg viewBox="0 0 180 120" fill="none" aria-hidden="true">
+                  <path class="draw path-7" d="M30 90 L90 20 L150 90" />
+                  <circle class="pulse delay" cx="90" cy="90" r="10" />
+                </svg>
+              </div>
+              <h3>Peak Beacon</h3>
+              <p>Mountain draw with signal pulse.</p>
+              <button class="primary">Use template</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="workflow">
+          <div class="section-head">
+            <h2>How it works</h2>
+          </div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">01</div>
+              <h3>Describe motion</h3>
+              <p>Use a single sentence or paste a sketch prompt.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">02</div>
+              <h3>Generate SVG</h3>
+              <p>We produce layered paths with timing presets.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">03</div>
+              <h3>Refine timeline</h3>
+              <p>Adjust easing, duration, and sequence.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">04</div>
+              <h3>Export code</h3>
+              <p>Download clean SVG or embed-ready HTML.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats">
+          <div>
+            <strong>2,300</strong>
+            <span>Design teams</span>
+          </div>
+          <div>
+            <strong>64</strong>
+            <span>Animation presets</span>
+          </div>
+          <div>
+            <strong>4.9</strong>
+            <span>Average rating</span>
+          </div>
+          <div>
+            <strong>48</strong>
+            <span>Export formats</span>
+          </div>
+        </section>
+
+        <section class="faq" id="faq">
+          <div class="section-head">
+            <h2>FAQ</h2>
+          </div>
+          <details>
+            <summary>Can I export raw SVG?</summary>
+            <p>Yes. Export pure SVG with embedded styles or external CSS.</p>
+          </details>
+          <details>
+            <summary>Is the animation timeline editable?</summary>
+            <p>Use the timeline panel or export to CSS and edit any keyframe.</p>
+          </details>
+          <details>
+            <summary>Does it work with Figma?</summary>
+            <p>Export SVG and import directly. We keep paths editable.</p>
+          </details>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>
+          <strong>SVG Animate</strong>
+          <p>Build motion-ready SVGs for product teams.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#">Docs</a>
+          <a href="#">Templates</a>
+          <a href="#">Pricing</a>
+          <a href="#">Support</a>
+        </div>
+      </footer>
+    </div>
+    <script src="./assets/svganimate.js"></script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+function renderRuleMatches(rows) {
+  const listEl = $("rule-matches-list");
+  renderList(
+    listEl,
+    rows,
+    (row) => {
+      const li = document.createElement("li");
+      li.className = "card";
+      li.innerHTML = `
+        <strong>${escapeHtml(row.rule_name || "规则")} · ${escapeHtml(row.event_type)}</strong>
+        <div class="meta">规则�? ${escapeHtml(row.rule_set_name || row.rule_set_id)}</div>
+        <div class="meta">订单: ${escapeHtml(row.order_id)} · 会话: ${escapeHtml(row.session_id)}</div>
+        <div class="meta">时间: ${escapeHtml(formatDate(row.matched_at))} · 抑制: ${row.suppressed ? "�? : "�?}</div>
+        <pre class="code">${escapeHtml(JSON.stringify({ conditions: row.conditions, metrics: row.metrics, note: row.note }, null, 2))}</pre>
+      `;
+      return li;
+    },
+    "暂无规则命中"
+  );
+}
+
+
