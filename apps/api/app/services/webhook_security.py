@@ -101,8 +101,25 @@ def check_and_store_nonce(provider: str, nonce: str, ttl_sec: int) -> bool:
     return True
 
 
+async def acheck_and_store_nonce(provider: str, nonce: str, ttl_sec: int) -> bool:
+    if not nonce:
+        return True
+    key = f"webhook_nonce:{provider}:{nonce}"
+    if await cache.aget(key):
+        return False
+    await cache.aset(key, {"ok": True}, ttl_sec=ttl_sec)
+    return True
+
+
 def check_and_store_idempotency(key: str, ttl_sec: int) -> bool:
     if cache.get(key):
         return False
     cache.set(key, {"ok": True}, ttl_sec=ttl_sec)
+    return True
+
+
+async def acheck_and_store_idempotency(key: str, ttl_sec: int) -> bool:
+    if await cache.aget(key):
+        return False
+    await cache.aset(key, {"ok": True}, ttl_sec=ttl_sec)
     return True

@@ -79,6 +79,7 @@ class _DeviceRegister(BaseModel):
 
 app_schemas.DeviceOut = _DeviceOut
 app_schemas.DeviceRegister = _DeviceRegister
+app_schemas.DeviceListOut = object
 sys.modules["app.schemas.schemas"] = app_schemas
 
 app_models = types.ModuleType("app.models.entities")
@@ -90,6 +91,7 @@ class _EdgeDevice:
         def __eq__(self, *_args, **_kwargs):
             return True
     id = _Col()
+    owner_user_id = _Col()
 app_models.EdgeDevice = _EdgeDevice
 sys.modules["app.models.entities"] = app_models
 
@@ -227,6 +229,40 @@ class ReportCacheInvalidationTests(unittest.IsolatedAsyncioTestCase):
             )
         self.assertEqual(ctx.exception.status_code, 403)
         self.assertEqual(ctx.exception.detail, "Admin only")
+
+    async def test_list_devices_returns_wrapped_devices_contract(self):
+        module = load_module()
+        device = _EdgeDevice(
+            id="dev-4",
+            owner_user_id="u1",
+            name="Cam 4",
+            device_type="cam",
+            status="online",
+            device_code="edge-4",
+        )
+
+        class _Scalars:
+            def all(self):
+                return [device]
+
+        class _Result:
+            def scalars(self):
+                return _Scalars()
+
+        class _DB:
+            async def execute(self, *_args, **_kwargs):
+                return _Result()
+
+        result = await module.list_devices(
+            all=False,
+            db=_DB(),
+            user=types.SimpleNamespace(id="u1"),
+        )
+
+        self.assertIsInstance(result, dict)
+        self.assertIn("devices", result)
+        self.assertEqual(result["devices"][0]["id"], "dev-4")
+        self.assertEqual(result["devices"][0]["device_code"], "edge-4")
 
     async def test_get_device_forbidden_for_other_user(self):
         module = load_module()

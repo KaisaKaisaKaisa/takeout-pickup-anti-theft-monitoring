@@ -103,7 +103,13 @@ sys.modules["app.models.entities"] = entities
 
 app_models = types.ModuleType("app.models")
 app_models.entities = entities
+app_models.__path__ = []
 sys.modules["app.models"] = app_models
+
+app_module = types.ModuleType("app")
+app_module.models = app_models
+app_module.__path__ = []
+sys.modules["app"] = app_module
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_dir)
@@ -112,6 +118,17 @@ MODULE_PATH = os.path.join(base_dir, "app", "services", "report_service.py")
 
 
 def load_module():
+    sys.modules["sqlalchemy"] = sqlalchemy
+    sys.modules["sqlalchemy.orm"] = sqlalchemy_orm
+    sys.modules["sqlalchemy.dialects"] = sqlalchemy_dialects
+    sys.modules["sqlalchemy.dialects.postgresql"] = sqlalchemy_dialects_postgresql
+    sys.modules["sqlalchemy.schema"] = sqlalchemy_schema
+    sys.modules["sqlalchemy.engine"] = sqlalchemy_engine
+    sys.modules["sqlalchemy.ext"] = sqlalchemy_ext
+    sys.modules["sqlalchemy.ext.asyncio"] = sqlalchemy_ext_asyncio
+    sys.modules["app.models.entities"] = entities
+    sys.modules["app.models"] = app_models
+    sys.modules["app"] = app_module
     spec = importlib.util.spec_from_file_location("report_service", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

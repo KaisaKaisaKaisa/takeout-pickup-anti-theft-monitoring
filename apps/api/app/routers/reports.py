@@ -15,6 +15,12 @@ from app.services.report_service import (
 from app.core import cache
 
 router = APIRouter()
+CSV_RESPONSE = {
+    200: {
+        "description": "CSV download",
+        "content": {"text/csv": {"schema": {"type": "string"}}},
+    }
+}
 
 def _parse_datetime(value: str | None, label: str) -> datetime | None:
     if not value:
@@ -44,7 +50,7 @@ async def report_summary(
     start_dt = _parse_datetime(start, "start")
     end_dt = _parse_datetime(end, "end")
     cache_key = f"report_summary:{scope}:{user.id if scope == 'user' else 'global'}:{start or ''}:{end or ''}"
-    cached = cache.get(cache_key)
+    cached = await cache.aget(cache_key)
     if cached:
         return cached
     if scope == "global":
@@ -53,10 +59,10 @@ async def report_summary(
         data = await get_summary(db, user_id=None, start=start_dt, end=end_dt)
     else:
         data = await get_summary(db, user_id=user.id, start=start_dt, end=end_dt)
-    cache.set(cache_key, data, ttl_sec=3)
+    await cache.aset(cache_key, data, ttl_sec=3)
     return data
 
-@router.get("/summary/export")
+@router.get("/summary/export", response_class=Response, responses=CSV_RESPONSE)
 async def export_report_summary(
     scope: str = Query("user", pattern="^(user|global)$"),
     start: str | None = Query(None),
@@ -92,7 +98,7 @@ async def report_trends(
     start_dt = _parse_datetime(start, "start")
     end_dt = _parse_datetime(end, "end")
     cache_key = f"report_trends:{scope}:{interval}:{days}:{weeks}:{start or ''}:{end or ''}:{user.id if scope == 'user' else 'global'}"
-    cached = cache.get(cache_key)
+    cached = await cache.aget(cache_key)
     if cached:
         return cached
     if scope == "global":
@@ -101,10 +107,10 @@ async def report_trends(
         data = await get_trends(db, user_id=None, days=days, interval=interval, weeks=weeks, start=start_dt, end=end_dt)
     else:
         data = await get_trends(db, user_id=user.id, days=days, interval=interval, weeks=weeks, start=start_dt, end=end_dt)
-    cache.set(cache_key, data, ttl_sec=3)
+    await cache.aset(cache_key, data, ttl_sec=3)
     return data
 
-@router.get("/trends/export")
+@router.get("/trends/export", response_class=Response, responses=CSV_RESPONSE)
 async def export_report_trends(
     scope: str = Query("user", pattern="^(user|global)$"),
     days: int = Query(7, ge=1, le=30),
@@ -145,7 +151,7 @@ async def export_report_trends(
         headers={"Content-Disposition": "attachment; filename=report-trends.csv"},
     )
 
-@router.get("/rule-matches/export")
+@router.get("/rule-matches/export", response_class=Response, responses=CSV_RESPONSE)
 async def export_rule_matches(
     scope: str = Query("user", pattern="^(user|global)$"),
     limit: int = Query(200, ge=1, le=500),

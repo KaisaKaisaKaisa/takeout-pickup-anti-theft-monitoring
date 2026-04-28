@@ -1,4 +1,5 @@
 import importlib.util
+import importlib
 import os
 import sys
 import unittest
@@ -33,12 +34,18 @@ except Exception:
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_dir)
 
-from app.core import cache
-
 MODULE_PATH = os.path.join(base_dir, "app", "services", "webhook_security.py")
 
 
+def load_cache_module():
+    for name in ["app.core.cache", "app.core.config", "app.core", "app"]:
+        sys.modules.pop(name, None)
+    return importlib.import_module("app.core.cache")
+
+
 def load_module():
+    load_cache_module()
+    sys.modules.pop("app.services.webhook_security", None)
     spec = importlib.util.spec_from_file_location("webhook_security", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -47,6 +54,7 @@ def load_module():
 
 class WebhookSecurityTests(unittest.TestCase):
     def setUp(self):
+        cache = load_cache_module()
         cache.invalidate("webhook_nonce:")
         cache.invalidate("webhook_idem:")
         self.assertTrue(os.path.exists(MODULE_PATH))

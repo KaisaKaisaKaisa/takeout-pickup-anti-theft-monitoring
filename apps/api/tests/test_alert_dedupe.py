@@ -134,10 +134,8 @@ entities.Base = type("Base", (), {})
 sys.modules["app.models.entities"] = entities
 app_models = types.ModuleType("app.models")
 app_models.entities = entities
+app_models.__path__ = []
 sys.modules["app.models"] = app_models
-app_module = types.ModuleType("app")
-app_module.models = app_models
-sys.modules["app"] = app_module
 
 app_core_ws = types.ModuleType("app.core.ws")
 
@@ -148,6 +146,7 @@ app_core_ws.broadcast_event = _noop_ws
 sys.modules["app.core.ws"] = app_core_ws
 app_core = types.ModuleType("app.core")
 app_core.ws = app_core_ws
+app_core.__path__ = []
 sys.modules["app.core"] = app_core
 
 app_core_cache = types.ModuleType("app.core.cache_invalidation")
@@ -163,6 +162,13 @@ app_services_ws_payloads.build_rule_match_payload = lambda *args, **kwargs: {}
 app_services_ws_payloads.build_event_payload = lambda *args, **kwargs: {}
 sys.modules["app.services.ws_payloads"] = app_services_ws_payloads
 
+app_services = types.ModuleType("app.services")
+app_services.rule_engine_utils = app_services_rule_utils
+app_services.ws_payloads = app_services_ws_payloads
+app_services.alert_engine = app_services_alert_engine
+app_services.__path__ = []
+sys.modules["app.services"] = app_services
+
 app_core_config = types.ModuleType("app.core.config")
 
 class _Settings:
@@ -173,10 +179,34 @@ class _Settings:
 app_core_config.settings = _Settings()
 sys.modules["app.core.config"] = app_core_config
 
+app_module = types.ModuleType("app")
+app_module.models = app_models
+app_module.core = app_core
+app_module.services = app_services
+app_module.__path__ = []
+sys.modules["app"] = app_module
+
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MODULE_PATH = os.path.join(base_dir, "app", "services", "alert_engine.py")
 
 def load_module():
+    sys.modules["app.services.alert_engine"] = app_services_alert_engine
+    sys.modules["sqlalchemy"] = sqlalchemy
+    sys.modules["sqlalchemy.orm"] = sqlalchemy_orm
+    sys.modules["sqlalchemy.dialects"] = sqlalchemy_dialects
+    sys.modules["sqlalchemy.dialects.postgresql"] = sqlalchemy_dialects_postgresql
+    sys.modules["sqlalchemy.ext"] = sqlalchemy_ext
+    sys.modules["sqlalchemy.ext.asyncio"] = sqlalchemy_ext_asyncio
+    sys.modules["app.models.entities"] = entities
+    sys.modules["app.models"] = app_models
+    sys.modules["app.core.ws"] = app_core_ws
+    sys.modules["app.core"] = app_core
+    sys.modules["app.core.cache_invalidation"] = app_core_cache
+    sys.modules["app.services.rule_engine_utils"] = app_services_rule_utils
+    sys.modules["app.services.ws_payloads"] = app_services_ws_payloads
+    sys.modules["app.services"] = app_services
+    sys.modules["app.core.config"] = app_core_config
+    sys.modules["app"] = app_module
     spec = importlib.util.spec_from_file_location("alert_engine", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

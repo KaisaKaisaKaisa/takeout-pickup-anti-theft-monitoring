@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   postgres:
     image: postgres:15
@@ -9,11 +8,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d takeout_guard"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   minio:
     image: minio/minio:RELEASE.2024-01-13T07-53-03Z
@@ -26,23 +35,58 @@ services:
       - "9001:9001"
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-01-13T08-44-48Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minio minio123; do sleep 1; done;
+      mc mb --ignore-existing local/takeout-guard-evidence;
+      mc anonymous set none local/takeout-guard-evidence;
+      "
 
   api:
     image: python:3.11-slim
     working_dir: /app
     volumes:
       - ../../apps/api:/app
-    command: sh -lc "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: sh -lc "pip install -r requirements.txt && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       DB_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/takeout_guard
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORE: minio
+      OBJECT_STORE_BUCKET: takeout-guard-evidence
+      OBJECT_STORE_ENDPOINT_URL: http://minio:9000
+      OBJECT_STORE_ACCESS_KEY: minio
+      OBJECT_STORE_SECRET_KEY: minio123
+      OBJECT_STORE_REGION: us-east-1
       JWT_SECRET: dev-secret
       RUN_BACKGROUND_TASKS: "false"
     ports:
       - "127.0.0.1:18000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
     depends_on:
-      - postgres
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   worker:
     image: python:3.11-slim
@@ -52,11 +96,36 @@ services:
     command: sh -lc "pip install -r requirements.txt && python -m app.worker"
     environment:
       DB_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/takeout_guard
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORE: minio
+      OBJECT_STORE_BUCKET: takeout-guard-evidence
+      OBJECT_STORE_ENDPOINT_URL: http://minio:9000
+      OBJECT_STORE_ACCESS_KEY: minio
+      OBJECT_STORE_SECRET_KEY: minio123
+      OBJECT_STORE_REGION: us-east-1
       JWT_SECRET: dev-secret
+      RUN_BACKGROUND_TASKS: "true"
     depends_on:
-      - postgres
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  pwa:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ../../:/app
+    command: python scripts/serve_pwa.py
+    ports:
+      - "127.0.0.1:15173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

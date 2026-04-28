@@ -1,6 +1,9 @@
-﻿const API_BASE_URL = typeof API_BASE !== "undefined" ? API_BASE : "http://localhost:18000/api/v1";
+const API_BASE_URL = typeof API_BASE !== "undefined" ? API_BASE : "http://localhost:18000/api/v1";
 const API_ROOT = API_BASE_URL.replace(/\/api\/v1$/, "");
 const DEMO_ACCOUNT = { phone: "demo-user", password: "demo-pass", name: "Demo" };
+const appApiClient = window.apiClient || {};
+const appAuthClient = window.authClient || {};
+const appReportClient = window.reportClient || {};
 
 const state = {
   token: null,
@@ -14,10 +17,13 @@ const state = {
 let ruleMatchIndex = new Map();
 let ruleMatchSignature = "";
 let trendCache = null;
-const apiParams = window.apiParams || {};
-const alertActionsApi = window.alertActions || {};
-const ruleSetSelectApi = window.ruleSetSelect || {};
-const reportMapping = window.reportMapping || {
+let appEventsBound = false;
+const appApiParams = window.apiParams || {};
+const appAlertActionsApi = window.alertActions || {};
+const appRuleSetSelectApi = window.ruleSetSelect || {};
+const appRealtimeClient = window.realtimeClient || {};
+const appWorkspaceCards = window.workspaceCards || {};
+const appReportMapping = window.reportMapping || {
   normalizeSummary(data = {}) {
     const orders = data.orders || {};
     const alerts = data.alerts || {};
@@ -69,6 +75,12 @@ const reportMapping = window.reportMapping || {
 };
 
 const inflight = {};
+const WORKSPACE_ANCHOR_OWNER = {
+  alerts: "orders",
+  "alert-detail": "orders",
+  devices: "orders",
+  "rule-matches": "rules",
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -121,11 +133,13 @@ function flashMeta(message, duration = 3200) {
     return;
   }
   node.textContent = message;
+  node.dataset.state = /失败|错误|不可用/.test(message) ? "error" : "ok";
   if (heroMetaTimer) {
     clearTimeout(heroMetaTimer);
   }
   heroMetaTimer = setTimeout(() => {
     node.textContent = heroMetaDefault;
+    delete node.dataset.state;
   }, duration);
 }
 
@@ -204,7 +218,123 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
+function resolveMediaUrl(media) {
+  const raw = media?.download_url || media?.url || media?.path || "";
+  if (!raw) {
+    return "";
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+  return `${API_ROOT}${raw}`;
+}
+
+async function resolveDownloadUrl(path) {
+  if (!path) {
+    return "";
+  }
+  let requestUrl = "";
+  if (/^https?:\/\//i.test(path)) {
+    const parsedUrl = new URL(path);
+    if (parsedUrl.origin !== API_ROOT || !parsedUrl.pathname.startsWith("/api/v1/")) {
+      return path;
+    }
+    requestUrl = parsedUrl.toString();
+  } else if (path.startsWith("/api/v1/")) {
+    requestUrl = `${API_ROOT}${path}`;
+  } else {
+    requestUrl = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+  const headers = {};
+  const token = await ensureAuth();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const res = await fetch(requestUrl, { headers });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText || "媒体下载失败");
+  }
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  }
+  const result = await res.json();
+  if (typeof result === "string") {
+    return /^https?:\/\//i.test(result) ? result : `${API_ROOT}${result}`;
+  }
+  if (result?.download_url) {
+    return result.download_url;
+  }
+  return `${API_ROOT}${path}`;
+}
+
+function normalizeDeviceList(payload) {
+  if (Array.isArray(payload?.devices)) {
+    return payload.devices;
+  }
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  return [];
+}
+
+function setFieldError(inputId, message = "") {
+  const input = $(inputId);
+  const error = $(`${inputId}-error`);
+  const row = input?.closest(".form-row");
+  if (error) {
+    error.textContent = message;
+  }
+  if (row) {
+    row.classList.toggle("has-error", Boolean(message));
+  }
+  if (input) {
+    input.setAttribute("aria-invalid", message ? "true" : "false");
+  }
+}
+
+function setFormStatus(message, stateName = "") {
+  const node = $("import-form-status");
+  if (!node) {
+    return;
+  }
+  node.textContent = message;
+  node.classList.toggle("is-ok", stateName === "ok");
+  node.classList.toggle("is-error", stateName === "error");
+}
+
+function validateImportForm() {
+  const merchant = $("merchant")?.value?.trim() || "";
+  const summary = $("summary")?.value?.trim() || "";
+  const pickupWindow = toNumber($("pickup-window")?.value, 30);
+  let ok = true;
+  setFieldError("merchant", "");
+  setFieldError("summary", "");
+  setFieldError("pickup-window", "");
+  if (!merchant && !summary) {
+    setFieldError("merchant", "至少填写商家或商品摘要");
+    setFieldError("summary", "至少填写商家或商品摘要");
+    ok = false;
+  }
+  if (pickupWindow < 5 || pickupWindow > 180) {
+    setFieldError("pickup-window", "取餐窗口需在 5 到 180 分钟之间");
+    ok = false;
+  }
+  setFormStatus(ok ? "订单信息可提交" : "请修正高亮字段", ok ? "ok" : "error");
+  return ok;
+}
+
 async function ensureAuth() {
+  if (typeof appAuthClient.ensureAuth === "function") {
+    return appAuthClient.ensureAuth({
+      store: state,
+      apiBase: API_BASE_URL,
+      demoAccount: DEMO_ACCOUNT,
+      apiClient: appApiClient,
+    });
+  }
   if (state.token) {
     return state.token;
   }
@@ -227,7 +357,7 @@ async function ensureAuth() {
     });
   }
   if (!res.ok) {
-    throw new Error("鐧诲綍澶辫触");
+    throw new Error("登录失败");
   }
   const data = await res.json();
   state.token = data.access_token;
@@ -247,6 +377,16 @@ async function withInFlight(key, handler) {
 }
 
 async function fetchJson(path, options = {}, useAuth = true, retry = true) {
+  if (typeof appAuthClient.fetchJson === "function") {
+    return appAuthClient.fetchJson(path, options, {
+      store: state,
+      apiBase: API_BASE_URL,
+      apiClient: appApiClient,
+      demoAccount: DEMO_ACCOUNT,
+      useAuth,
+      retry,
+    });
+  }
   const headers = options.headers ? { ...options.headers } : {};
   if (useAuth && state.token) {
     headers.Authorization = `Bearer ${state.token}`;
@@ -276,6 +416,15 @@ async function fetchJson(path, options = {}, useAuth = true, retry = true) {
 }
 
 async function fetchBlob(path, options = {}, useAuth = true) {
+  if (typeof appAuthClient.fetchBlob === "function") {
+    return appAuthClient.fetchBlob(path, options, {
+      store: state,
+      apiBase: API_BASE_URL,
+      apiClient: appApiClient,
+      demoAccount: DEMO_ACCOUNT,
+      useAuth,
+    });
+  }
   const headers = options.headers ? { ...options.headers } : {};
   if (useAuth && state.token) {
     headers.Authorization = `Bearer ${state.token}`;
@@ -289,6 +438,14 @@ async function fetchBlob(path, options = {}, useAuth = true) {
 }
 
 async function downloadWithAuth(path, filename) {
+  if (typeof appAuthClient.downloadWithAuth === "function") {
+    return appAuthClient.downloadWithAuth(path, filename, {
+      store: state,
+      apiBase: API_BASE_URL,
+      apiClient: appApiClient,
+      demoAccount: DEMO_ACCOUNT,
+    });
+  }
   const blob = await fetchBlob(path);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -302,9 +459,31 @@ async function downloadWithAuth(path, filename) {
 
 function renderEmpty(listEl, message) {
   const item = document.createElement("li");
-  item.className = "card";
-  item.innerHTML = `<span class="meta">${escapeHtml(message)}</span>`;
+  item.className = "card empty-state";
+  item.innerHTML = `
+    <strong>暂无可处理记录</strong>
+    <span class="meta">${escapeHtml(message)}</span>
+  `;
   listEl.appendChild(item);
+}
+
+function renderLoading(listEl, message = "正在加载数据") {
+  if (!listEl) {
+    return;
+  }
+  listEl.classList.add("is-loading");
+  listEl.innerHTML = `
+    <li class="card skeleton-card">
+      <strong>${escapeHtml(message)}</strong>
+      <span class="meta">正在同步订单、告警、设备与规则状态。</span>
+    </li>
+  `;
+}
+
+function clearLoading(listEl) {
+  if (listEl) {
+    listEl.classList.remove("is-loading");
+  }
 }
 
 function renderList(listEl, items, builder, emptyText) {
@@ -326,82 +505,67 @@ async function loadMe() {
 
 async function loadOrders() {
   return withInFlight("orders", async () => {
+    renderLoading($("orders-list"), "正在加载订单队列");
     const data = await fetchJson("/orders");
+    clearLoading($("orders-list"));
     renderOrders(data.orders || []);
   });
 }
 
 function renderOrders(orders) {
   const listEl = $("orders-list");
-  renderList(
-    listEl,
-    orders,
-    (order) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = order.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(order.provider)} 路 ${escapeHtml(order.status)}</strong>
-        <div class="meta">订单ID: ${escapeHtml(order.id)}</div>
-        <div class="meta">${escapeHtml(formatPair(order.merchant_name || "-", getOrderSummary(order) || "-"))}</div>
-        <div class="meta">送达: ${escapeHtml(formatDate(getOrderTimestamp(order)))} 路 预计取餐: ${escapeHtml(formatDate(order.expected_pickup_by))}</div>
-        <div class="meta">会话: ${escapeHtml(order.latest_session_id || "-")}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="deliver">模拟送达</button>
-          <button class="primary" data-action="arm">启动监控</button>
-          <button class="ghost" data-action="confirm">确认取餐</button>
-          <button class="ghost" data-action="timeline">查看时间线</button>
-        </div>
-      `;
-      li.querySelector('[data-action="deliver"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/integrations/mock/delivered/${order.id}`, { method: "POST" });
-          flashMeta("模拟送达完成");
-          await loadOrders();
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta("模拟送达失败");
-        }
-      });
-      li.querySelector('[data-action="arm"]').addEventListener("click", async () => {
-        try {
-          const res = await fetchJson(`/orders/${order.id}/arm`, { method: "POST" });
-          flashMeta(`监控会话已启动：${res.session_id}`);
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta("启动监控失败");
-        }
-      });
-      li.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/orders/${order.id}/confirm-pickup`, { method: "POST" });
-          flashMeta("已确认取餐");
-          await loadAlerts();
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta("确认取餐失败");
-        }
-      });
-      li.querySelector('[data-action="timeline"]').addEventListener("click", async () => {
-        try {
-          const timeline = await fetchJson(`/orders/${order.id}/timeline`);
-          const output = $("alert-detail-output");
-          if (output) {
-            output.textContent = JSON.stringify(timeline, null, 2);
-          }
-          flashMeta("已加载订单时间线");
-        } catch (err) {
-          console.error(err);
-          flashMeta("加载时间线失败");
-        }
-      });
-      return li;
-    },
-    "暂无订单"
-  );
+  renderList(listEl, orders, buildOrderCard, "暂无订单");
+}
+
+async function deliverOrder(order) {
+  try {
+    await fetchJson(`/integrations/mock/delivered/${order.id}`, { method: "POST" });
+    flashMeta("模拟送达完成");
+    await loadOrders();
+    await loadReports();
+  } catch (err) {
+    console.error(err);
+    flashMeta("模拟送达失败");
+  }
+}
+
+async function armOrder(order) {
+  try {
+    const res = await fetchJson(`/orders/${order.id}/arm`, { method: "POST" });
+    flashMeta(`监控会话已启动：${res.session_id}`);
+    await loadOrders();
+    await loadReports();
+  } catch (err) {
+    console.error(err);
+    flashMeta("启动监控失败");
+  }
+}
+
+async function confirmOrder(order) {
+  try {
+    await fetchJson(`/orders/${order.id}/confirm-pickup`, { method: "POST" });
+    flashMeta("已确认取餐");
+    await loadOrders();
+    await loadAlerts();
+    await loadReports();
+  } catch (err) {
+    console.error(err);
+    flashMeta("确认取餐失败");
+  }
+}
+
+async function loadOrderTimeline(order) {
+  try {
+    const timeline = await fetchJson(`/orders/${order.id}/timeline`);
+    const output = $("alert-detail-output");
+    if (output) {
+      output.textContent = JSON.stringify(timeline, null, 2);
+    }
+    flashMeta("已加载订单时间线");
+  } catch (err) {
+    console.error(err);
+    flashMeta("加载时间线失败");
+  }
 }
 
 async function loadAlerts() {
@@ -413,7 +577,7 @@ async function loadAlerts() {
 
 async function runAlertAction(alertId, action) {
   const getMeta =
-    alertActionsApi.getAlertActionMeta ||
+    appAlertActionsApi.getAlertActionMeta ||
     ((name) => {
       if (name === "ack") {
         return {
@@ -450,112 +614,67 @@ async function runAlertAction(alertId, action) {
   }
 }
 
-function renderAlerts(alerts) {
-  const listEl = $("alerts-list");
-  renderList(
-    listEl,
-    alerts,
-    (alert) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = alert.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} 路 ${escapeHtml(alert.level)}</strong>
-        <div class="meta">状态: ${escapeHtml(alert.status)} 路 时间: ${escapeHtml(formatDate(getAlertTimestamp(alert)))}</div>
-        <div class="meta">订单: ${escapeHtml(alert.order_id)}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="detail">详情</button>
-          <button class="ghost" data-action="ack">确认</button>
-          <button class="ghost" data-action="resolve">结案</button>
-          <button class="ghost" data-action="false">误报</button>
-          <button class="primary" data-action="evidence">取证</button>
-        </div>
-      `;
-      li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-        await loadAlertDetail(alert.id);
-      });
-      li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/alerts/${alert.id}/ack`, { method: "POST" });
-          flashMeta("告警已确认");
-          await loadAlerts();
-        } catch (err) {
-          console.error(err);
-          flashMeta("告警确认失败");
-        }
-      });
-      li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/alerts/${alert.id}/resolve`, { method: "POST" });
-          flashMeta("告警已结案");
-          await loadAlerts();
-        } catch (err) {
-          console.error(err);
-          flashMeta("告警结案失败");
-        }
-      });
-      li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/alerts/${alert.id}/false-positive`, { method: "POST" });
-          flashMeta("已标记为误报");
-          await loadAlerts();
-        } catch (err) {
-          console.error(err);
-          flashMeta("误报标记失败");
-        }
-      });
-      li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-        await generateEvidence(alert.id);
-      });
-      return li;
-    },
-    "暂无告警"
-  );
+function setSelectedAlertCard(alertId) {
+  const normalizedAlertId = alertId == null ? "" : String(alertId);
+  document.querySelectorAll(".alert-event-card.is-selected").forEach((card) => {
+    card.classList.remove("is-selected");
+  });
+  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
+  if (detailPanel) {
+    if (normalizedAlertId) {
+      detailPanel.dataset.alertId = normalizedAlertId;
+    } else {
+      delete detailPanel.dataset.alertId;
+    }
+  }
+  if (!normalizedAlertId) {
+    return;
+  }
+  const targetCard = document.querySelector(`#alerts-list .alert-event-card[data-id="${normalizedAlertId}"]`);
+  if (targetCard) {
+    targetCard.classList.add("is-selected");
+  }
 }
 
-renderAlerts = function renderAlerts(alerts) {
+function setEvidenceBayState({ loaded = false, evidence = false } = {}) {
+  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
+  if (!detailPanel) {
+    return;
+  }
+  detailPanel.classList.toggle("is-loaded", loaded);
+  detailPanel.classList.toggle("is-evidence", evidence);
+}
+
+function renderAlerts(alerts) {
   const listEl = $("alerts-list");
-  renderList(
-    listEl,
-    alerts,
-    (alert) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = alert.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level)}</strong>
-        <div class="meta">状态: ${escapeHtml(alert.status)} / 时间: ${escapeHtml(formatDate(getAlertTimestamp(alert)))}</div>
-        <div class="meta">订单: ${escapeHtml(alert.order_id)}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="detail">详情</button>
-          <button class="ghost" data-action="ack">确认</button>
-          <button class="ghost" data-action="resolve">结案</button>
-          <button class="ghost" data-action="false">误报</button>
-          <button class="primary" data-action="evidence">取证</button>
-        </div>
-      `;
-      li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-        await loadAlertDetail(alert.id);
-      });
-      li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "ack");
-      });
-      li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "resolve");
-      });
-      li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "false_positive");
-      });
-      li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-        await generateEvidence(alert.id);
-      });
-      return li;
-    },
-    "暂无告警"
-  );
-};
+  renderList(listEl, alerts, buildAlertCard, "暂无告警");
+}
+
+async function renderAlertMedia(mediaList, mediaItems = []) {
+  mediaList.innerHTML = "";
+  if (!mediaItems || mediaItems.length === 0) {
+    mediaList.innerHTML = `<div class="meta">暂无证据媒体</div>`;
+    return;
+  }
+  for (const media of mediaItems) {
+    const img = document.createElement("img");
+    const fallback = resolveMediaUrl(media);
+    try {
+      const src = media?.download_url ? await resolveDownloadUrl(media.download_url) : fallback;
+      img.src = src;
+    } catch (err) {
+      console.error(err);
+      img.src = fallback;
+      img.dataset.state = "unresolved";
+    }
+    img.alt = media.type || media.media_type || "media";
+    mediaList.appendChild(img);
+  }
+}
 
 async function loadAlertDetail(alertId) {
+  setSelectedAlertCard(alertId);
+  setEvidenceBayState({ loaded: false, evidence: false });
   try {
     const detail = await fetchJson(`/alerts/${alertId}`);
     const output = $("alert-detail-output");
@@ -564,42 +683,39 @@ async function loadAlertDetail(alertId) {
     }
     const mediaList = $("alert-media");
     if (mediaList) {
-      mediaList.innerHTML = "";
-      if (!detail.media || detail.media.length === 0) {
-        mediaList.innerHTML = `<div class="meta">暂无证据媒体</div>`;
-      } else {
-        detail.media.forEach((media) => {
-          const img = document.createElement("img");
-          img.src = `${API_ROOT}${media.download_url}`;
-          img.alt = media.type || "media";
-          mediaList.appendChild(img);
-        });
-      }
+      await renderAlertMedia(mediaList, detail.media || []);
     }
+    setEvidenceBayState({ loaded: true, evidence: false });
     flashMeta("告警详情已加载");
   } catch (err) {
     console.error(err);
-    flashMeta("加载告警详情失败");
+    setEvidenceBayState({ loaded: false, evidence: false });
+    flashMeta(getErrorMessage(err, "加载告警详情失败"));
   }
 }
 
 async function generateEvidence(alertId) {
+  setSelectedAlertCard(alertId);
+  setEvidenceBayState({ loaded: true, evidence: false });
   try {
     const res = await fetchJson(`/evidence/${alertId}/generate`, { method: "POST" });
     const output = $("alert-detail-output");
     if (output) {
       output.textContent = JSON.stringify(res, null, 2);
     }
+    setEvidenceBayState({ loaded: true, evidence: true });
     flashMeta("取证包生成完成");
   } catch (err) {
     console.error(err);
-    flashMeta("生成取证包失败");
+    setEvidenceBayState({ loaded: true, evidence: false });
+    flashMeta(getErrorMessage(err, "生成取证包失败"));
   }
 }
 
 async function loadDevices() {
   return withInFlight("devices", async () => {
-    const devices = await fetchJson("/devices");
+    const payload = await fetchJson("/devices");
+    const devices = normalizeDeviceList(payload);
     renderDevices(devices || []);
     if (!state.deviceId && devices && devices.length > 0) {
       await selectDevice(devices[0]);
@@ -609,27 +725,42 @@ async function loadDevices() {
 
 function renderDevices(devices) {
   const listEl = $("devices-list");
-  renderList(
-    listEl,
-    devices,
-    (device) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = device.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getDeviceSummary(device) || device.name)}</strong>
-        <div class="meta">类型: ${escapeHtml(device.device_type)} 路 状态: ${escapeHtml(device.status)} 路 更新: ${escapeHtml(formatDate(getDeviceTimestamp(device)))}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="select">选择</button>
-        </div>
-      `;
-      li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-        await selectDevice(device);
-      });
-      return li;
-    },
-    "暂无设备"
-  );
+  renderList(listEl, devices, buildDeviceCard, "暂无设备");
+}
+
+const workspaceCardBuilders = typeof appWorkspaceCards.createWorkspaceCards === "function"
+  ? appWorkspaceCards.createWorkspaceCards({
+      document,
+      getActiveAlertId: () => document.querySelector("#alert-detail .evidence-bay-panel")?.dataset.alertId || "",
+      onOrderDeliver: deliverOrder,
+      onOrderArm: armOrder,
+      onOrderConfirm: confirmOrder,
+      onOrderTimeline: loadOrderTimeline,
+      onAlertDetail: async (alert) => {
+        setSelectedAlertCard(alert.id);
+        await loadAlertDetail(alert.id);
+      },
+      onAlertAction: async (alert, action) => {
+        await runAlertAction(alert.id, action);
+      },
+      onAlertEvidence: async (alert) => {
+        setSelectedAlertCard(alert.id);
+        await generateEvidence(alert.id);
+      },
+      onDeviceSelect: selectDevice,
+    })
+  : null;
+
+function buildOrderCard(order) {
+  return workspaceCardBuilders.buildOrderCard(order);
+}
+
+function buildAlertCard(alert) {
+  return workspaceCardBuilders.buildAlertCard(alert);
+}
+
+function buildDeviceCard(device) {
+  return workspaceCardBuilders.buildDeviceCard(device);
 }
 
 async function selectDevice(device) {
@@ -674,36 +805,35 @@ async function loadHealth() {
     flashMeta("设备健康信息已加载");
   } catch (err) {
     console.error(err);
-    flashMeta("加载健康信息失败");
+    flashMeta(getErrorMessage(err, "加载健康信息失败"));
+  }
+}
+
+async function renderSystemHealth() {
+  const output = $("health-output") || $("alert-detail-output");
+  if (output) {
+    output.textContent = "正在检查系统状态...";
+  }
+  try {
+    const res = await fetch(`${API_ROOT}/readyz`);
+    const health = await res.json();
+    if (!res.ok) {
+      throw new Error(health.detail || `HTTP ${res.status}`);
+    }
+    if (output) {
+      output.textContent = JSON.stringify(health, null, 2);
+    }
+    flashMeta(health.ok === false ? "系统状态异常" : "系统状态已就绪");
+  } catch (err) {
+    console.error(err);
+    if (output) {
+      output.textContent = JSON.stringify({ ok: false, error: err.message }, null, 2);
+    }
+    flashMeta("系统状态不可用");
   }
 }
 
 async function saveDeviceConfig() {
-  if (!state.deviceId) {
-    flashMeta("请先选择设备");
-    return;
-  }
-  const minMotion = toNumber($("min-motion")?.value, 0);
-  const maxDrop = toNumber($("max-drop")?.value, 0);
-  try {
-    await fetchJson(`/devices/${state.deviceId}/config`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        sensitivity: {
-          min_motion_score: minMotion,
-          max_weight_drop: maxDrop,
-        },
-      }),
-    });
-    flashMeta("配置已保存");
-  } catch (err) {
-    console.error(err);
-    flashMeta("淇濆瓨閰嶇疆澶辫触");
-  }
-}
-
-
-saveDeviceConfig = async function saveDeviceConfig() {
   if (!state.deviceId) {
     flashMeta("请先选择设备");
     return;
@@ -732,122 +862,9 @@ saveDeviceConfig = async function saveDeviceConfig() {
     flashMeta("配置已保存");
   } catch (err) {
     console.error(err);
-    flashMeta(getErrorMessage(err, "淇濆瓨閰嶇疆澶辫触"));
+    flashMeta(getErrorMessage(err, "保存配置失败"));
   }
-};
-
-loadAlertDetail = async function loadAlertDetail(alertId) {
-  try {
-    const detail = await fetchJson(`/alerts/${alertId}`);
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(detail, null, 2);
-    }
-    const mediaList = $("alert-media");
-    if (mediaList) {
-      mediaList.innerHTML = "";
-      if (!detail.media || detail.media.length === 0) {
-        mediaList.innerHTML = '<div class="meta">暂无证据媒体</div>';
-      } else {
-        detail.media.forEach((media) => {
-          const img = document.createElement("img");
-          img.src = `${API_ROOT}${media.download_url}`;
-          img.alt = media.type || "media";
-          mediaList.appendChild(img);
-        });
-      }
-    }
-    flashMeta("告警详情已加载");
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "加载告警详情失败"));
-  }
-};
-
-generateEvidence = async function generateEvidence(alertId) {
-  try {
-    const res = await fetchJson(`/evidence/${alertId}/generate`, { method: "POST" });
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(res, null, 2);
-    }
-    flashMeta("取证包生成完成");
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "生成取证包失败"));
-  }
-};
-
-renderDevices = function renderDevices(devices) {
-  const listEl = $("devices-list");
-  renderList(
-    listEl,
-    devices,
-    (device) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = device.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getDeviceSummary(device) || device.name)}</strong>
-        <div class="meta">类型: ${escapeHtml(device.device_type)} / 状态: ${escapeHtml(device.status)} / 更新时间: ${escapeHtml(formatDate(getDeviceTimestamp(device)))}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="select">选择</button>
-        </div>
-      `;
-      li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-        await selectDevice(device);
-      });
-      return li;
-    },
-    "暂无设备"
-  );
-};
-
-selectDevice = async function selectDevice(device) {
-  state.deviceId = device.id;
-  state.deviceCode = device.device_code || state.deviceCode;
-  const selected = $("selected-device");
-  if (selected) {
-    selected.textContent = `当前选择：${device.name || device.id}`;
-  }
-  await loadDeviceConfig(device.id);
-};
-
-loadDeviceConfig = async function loadDeviceConfig(deviceId) {
-  try {
-    const detail = await fetchJson(`/devices/${deviceId}`);
-    const sensitivity = (detail.config || {}).sensitivity || {};
-    const minMotion = $("min-motion");
-    const maxDrop = $("max-drop");
-    if (minMotion) {
-      minMotion.value = sensitivity.min_motion_score ?? "";
-    }
-    if (maxDrop) {
-      maxDrop.value = sensitivity.max_weight_drop ?? "";
-    }
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "加载设备配置失败"));
-  }
-};
-
-loadHealth = async function loadHealth() {
-  if (!state.deviceId) {
-    flashMeta("请先选择设备");
-    return;
-  }
-  try {
-    const health = await fetchJson(`/devices/${state.deviceId}/health`);
-    const output = $("health-output");
-    if (output) {
-      output.textContent = JSON.stringify(health, null, 2);
-    }
-    flashMeta("设备健康信息已加载");
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "加载健康信息失败"));
-  }
-};
+}
 
 async function loadAudit() {
   return withInFlight("audit", async () => {
@@ -906,11 +923,12 @@ async function importOrder(evt) {
   const merchant = $("merchant")?.value?.trim();
   const summary = $("summary")?.value?.trim();
   const pickupWindow = toNumber($("pickup-window")?.value, 30);
-  if (!merchant && !summary) {
-    flashMeta("请输入商家或商品摘要");
+  if (!validateImportForm()) {
+    flashMeta("订单导入信息不完整");
     return;
   }
   try {
+    setFormStatus("正在导入订单");
     await fetchJson("/orders/manual-import", {
       method: "POST",
       body: JSON.stringify({
@@ -921,19 +939,22 @@ async function importOrder(evt) {
       }),
     });
     flashMeta("订单导入完成");
+    setFormStatus("订单导入完成", "ok");
     await loadOrders();
     await loadReports();
   } catch (err) {
     console.error(err);
-    flashMeta("订单导入失败");
+    const message = getErrorMessage(err, "订单导入失败");
+    setFormStatus(message, "error");
+    flashMeta(message);
   }
 }
 
 async function loadReports() {
   return withInFlight("reports", async () => {
     try {
-      const summaryQuery = apiParams.buildSummaryQuery
-        ? apiParams.buildSummaryQuery(getReportRangeFilters())
+      const summaryQuery = appApiParams.buildSummaryQuery
+        ? appApiParams.buildSummaryQuery(getReportRangeFilters())
         : "scope=user";
       const summary = await fetchJson(`/reports/summary?${summaryQuery}`);
       renderSummary(summary || {});
@@ -946,8 +967,8 @@ async function loadReports() {
 }
 
 function renderSummary(summary) {
-  const normalized = reportMapping.normalizeSummary
-    ? reportMapping.normalizeSummary(summary)
+  const normalized = appReportMapping.normalizeSummary
+    ? appReportMapping.normalizeSummary(summary)
     : summary || {};
   const orders = normalized.orders || {};
   const alerts = normalized.alerts || {};
@@ -980,8 +1001,8 @@ function setText(id, value) {
 
 async function loadTrends() {
   return withInFlight("trends", async () => {
-    const query = apiParams.buildTrendsQuery
-      ? apiParams.buildTrendsQuery(getTrendFilters())
+    const query = appApiParams.buildTrendsQuery
+      ? appApiParams.buildTrendsQuery(getTrendFilters())
       : `scope=user&interval=${state.reportInterval || "day"}&days=7`;
     const trends = await fetchJson(`/reports/trends?${query}`);
     renderTrends(trends || {});
@@ -989,8 +1010,8 @@ async function loadTrends() {
 }
 
 function renderTrends(trends) {
-  const normalized = reportMapping.normalizeTrends
-    ? reportMapping.normalizeTrends(trends)
+  const normalized = appReportMapping.normalizeTrends
+    ? appReportMapping.normalizeTrends(trends)
     : trends || {};
   renderTrendBars($("trend-orders"), normalized.orders || [], "");
   renderTrendBars($("trend-alerts"), normalized.alerts || [], "alerts");
@@ -1070,7 +1091,7 @@ function buildRuleMatchCard(row) {
     <div class="audit-card-meta-grid">
       <div class="meta"><span>规则集</span><strong>${escapeHtml(row.rule_set_name || row.rule_set_id || "-")}</strong></div>
       <div class="meta"><span>订单</span><strong>${escapeHtml(row.order_id || "-")}</strong></div>
-      <div class="meta"><span>浼氳瘽</span><strong>${escapeHtml(row.session_id || "-")}</strong></div>
+      <div class="meta"><span>会话</span><strong>${escapeHtml(row.session_id || "-")}</strong></div>
       <div class="meta"><span>命中时间</span><strong>${escapeHtml(formatDate(row.matched_at || row.updated_at))}</strong></div>
     </div>
     <pre class="code audit-card-code">${escapeHtml(JSON.stringify({ conditions: row.conditions, metrics: row.metrics || row.metrics_json, note: row.note }, null, 2))}</pre>
@@ -1081,8 +1102,8 @@ function buildRuleMatchCard(row) {
 async function loadRuleMatches(page = 1) {
   const filters = getRuleMatchFilters(page);
   const limit = filters.limit;
-  const query = apiParams.buildRuleMatchesQuery
-    ? apiParams.buildRuleMatchesQuery(filters)
+  const query = appApiParams.buildRuleMatchesQuery
+    ? appApiParams.buildRuleMatchesQuery(filters)
     : `limit=${limit}&offset=${filters.offset}`;
   try {
     const rows = await fetchJson(`/rules/matches?${query}`);
@@ -1313,7 +1334,7 @@ async function initRules() {
     const addGroupBtn = document.createElement("button");
     addGroupBtn.className = "ghost";
     addGroupBtn.type = "button";
-    addGroupBtn.textContent = "娣诲姞瀛愮粍";
+    addGroupBtn.textContent = "添加子组";
     addGroupBtn.addEventListener("click", () => {
       group.rules.push({ op: "and", rules: [{ field: getDefaultField(), op: "gte", value: "" }] });
       renderDslBuilder();
@@ -1496,7 +1517,7 @@ async function initRules() {
       return;
     }
     const buildOptions =
-      ruleSetSelectApi.buildRuleSetSelectOptions ||
+    appRuleSetSelectApi.buildRuleSetSelectOptions ||
       ((items = []) => {
         const editorOptions = items.map((set) => ({
           value: set.id,
@@ -1508,7 +1529,7 @@ async function initRules() {
         };
       });
     const replaceOptions =
-      ruleSetSelectApi.replaceSelectOptions ||
+    appRuleSetSelectApi.replaceSelectOptions ||
       ((select, options) => {
         if (!select) {
           return;
@@ -1578,7 +1599,7 @@ async function initRules() {
         li.className = "card";
         li.innerHTML = `
           <strong>${escapeHtml(rule.name)}</strong>
-          <div class="meta">浜嬩欢: ${escapeHtml(rule.event_type)} 路 鍔ㄤ綔: ${escapeHtml(rule.action || "alert")} 路 浼樺厛绾? ${escapeHtml(rule.priority)}</div>
+          <div class="meta">事件: ${escapeHtml(rule.event_type)} / 动作: ${escapeHtml(rule.action || "alert")} / 优先级: ${escapeHtml(rule.priority)}</div>
           <div class="meta">冷却: ${escapeHtml(rule.cooldown_sec)}s 路 状态: ${rule.enabled ? "启用" : "停用"}</div>
           <div class="btn-row">
             <button class="ghost" data-action="edit">编辑</button>
@@ -1848,522 +1869,46 @@ async function registerPush() {
 }
 
 function connectWebSocket() {
-  let wsUrl = "";
-  try {
-    const apiRoot = new URL(API_ROOT);
-    const wsProtocol = apiRoot.protocol === "https:" ? "wss:" : "ws:";
-    wsUrl = `${wsProtocol}//${apiRoot.host}/ws/alerts`;
-  } catch (err) {
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    wsUrl = `${protocol}://${location.hostname}:18000/ws/alerts`;
+  if (typeof appRealtimeClient.createRealtimeClient !== "function") {
+    return null;
   }
-  const ws = new WebSocket(wsUrl);
-  ws.onopen = () => {
-    try {
-      ws.send(JSON.stringify({ subscribe: ["order", "alert", "device", "rule"] }));
-    } catch (err) {
-      console.warn("ws subscribe failed", err);
-    }
-  };
-  let pending = { orders: false, alerts: false, devices: false, reports: false };
-  const throttleFactory = window.wsThrottle && window.wsThrottle.createThrottle
-    ? window.wsThrottle.createThrottle
-    : null;
-  const throttleOrders = throttleFactory ? throttleFactory(200, async () => {
-    if (document.hidden) {
-      return;
-    }
-    if (pending.orders) {
-      pending.orders = false;
-      await loadOrders();
-    }
-  }) : null;
-  const throttleAlerts = throttleFactory ? throttleFactory(200, async () => {
-    if (document.hidden) {
-      return;
-    }
-    if (pending.alerts) {
-      pending.alerts = false;
-      await loadAlerts();
-    }
-  }) : null;
-  const throttleDevices = throttleFactory ? throttleFactory(500, async () => {
-    if (document.hidden) {
-      return;
-    }
-    if (pending.devices) {
-      pending.devices = false;
-      await loadDevices();
-    }
-  }) : null;
-  const throttleReports = throttleFactory ? throttleFactory(800, async () => {
-    if (document.hidden) {
-      return;
-    }
-    if (pending.reports) {
-      pending.reports = false;
-      await loadReports();
-    }
-  }) : null;
-
-  const mark = (type) => {
-    if (type === "order") {
-      pending.orders = true;
-      pending.reports = true;
-      if (throttleOrders) {
-        throttleOrders();
-      }
-      if (throttleReports) {
-        throttleReports();
-      }
-    } else if (type === "alert") {
-      pending.alerts = true;
-      pending.reports = true;
-      if (throttleAlerts) {
-        throttleAlerts();
-      }
-      if (throttleReports) {
-        throttleReports();
-      }
-    } else if (type === "device") {
-      pending.devices = true;
-      pending.reports = true;
-      if (throttleDevices) {
-        throttleDevices();
-      }
-      if (throttleReports) {
-        throttleReports();
-      }
-    } else if (type === "reports") {
-      pending.reports = true;
-      if (throttleReports) {
-        throttleReports();
-      }
-    } else {
-      pending.alerts = true;
-      pending.reports = true;
-      if (throttleAlerts) {
-        throttleAlerts();
-      }
-      if (throttleReports) {
-        throttleReports();
-      }
-    }
-  };
-
-  const trimList = (listId, max) => {
-    if (!max || max <= 0) {
-      return;
-    }
-    const list = $(listId);
-    if (!list) {
-      return;
-    }
-    const items = Array.from(list.children);
-    const limiter = window.listLimit && window.listLimit.enforceListLimit
-      ? window.listLimit.enforceListLimit
-      : null;
-    const keep = limiter ? limiter(items, max) : items.slice(0, max);
-    keep.forEach((node) => {
-      if (node && node.parentElement !== list) {
-        list.appendChild(node);
-      }
-    });
-    const removed = items.slice(keep.length);
-    removed.forEach((node) => {
-      node.remove();
-    });
-    if (listId === "rule-matches-list" && window.ruleMatchIndex && window.ruleMatchIndex.removeIndexForNodes) {
-      window.ruleMatchIndex.removeIndexForNodes(ruleMatchIndex, removed);
-    }
-  };
-
-  const mergeListItem = (listId, itemId, build) => {
-    const list = $(listId);
-    if (!list) {
-      return;
-    }
-    if (!itemId) {
-      if (listId === "orders-list") {
-        mark("order");
-      } else if (listId === "alerts-list") {
-        mark("alert");
-      } else if (listId === "devices-list") {
-        mark("device");
-      } else if (listId === "rule-matches-list") {
-        mark("reports");
-      }
-      return;
-    }
-    const selector = `[data-id="${itemId}"]`;
-    const existing = list.querySelector(selector);
-    const node = build();
-    if (existing) {
-      existing.replaceWith(node);
-    } else {
-      list.prepend(node);
-    }
-    if (listId === "rule-matches-list") {
-      const id = node && node.dataset ? node.dataset.id : null;
-      if (id) {
-        ruleMatchIndex.set(String(id), node);
-      }
-    }
-    if (listId === "orders-list") {
-      trimList("orders-list", 100);
-    } else if (listId === "alerts-list") {
-      trimList("alerts-list", 100);
-    } else if (listId === "rule-matches-list") {
-      trimList("rule-matches-list", 200);
-    }
-  };
-
-  const buildDeviceCard = (device) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card support-node-card";
-    li.dataset.id = device.id;
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(getDeviceSummary(device) || device.name)}</strong>
-          <span class="hint">Support Node</span>
-        </div>
-        <span class="chip audit-status-chip">${escapeHtml(device.status || "unknown")}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>类型</span><strong>${escapeHtml(device.device_type || "-")}</strong></div>
-        <div class="meta"><span>更新</span><strong>${escapeHtml(formatDate(getDeviceTimestamp(device)))}</strong></div>
-        <div class="meta"><span>设备码</span><strong>${escapeHtml(device.device_code || "-")}</strong></div>
-      </div>
-      <div class="btn-row audit-card-actions">
-        <button class="ghost" data-action="select">选择</button>
-      </div>
-    `;
-    li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-      await selectDevice(device);
-    });
-    return li;
-  };
-
-  const buildRuleMatchCard = (row) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card rule-match-card";
-    li.dataset.id = row.id != null ? String(row.id) : "";
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(row.rule_name || row.summary || row.event_type || "规则")} 路 ${escapeHtml(row.event_type || "-")}</strong>
-          <span class="hint">Audit Trace</span>
-        </div>
-        <span class="chip audit-status-chip ${row.suppressed ? "is-warn" : "is-live"}">${row.suppressed ? "Suppressed" : "Live"}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>规则集</span><strong>${escapeHtml(row.rule_set_name || row.rule_set_id || "-")}</strong></div>
-        <div class="meta"><span>订单</span><strong>${escapeHtml(row.order_id || "-")}</strong></div>
-        <div class="meta"><span>浼氳瘽</span><strong>${escapeHtml(row.session_id || "-")}</strong></div>
-        <div class="meta"><span>命中时间</span><strong>${escapeHtml(formatDate(row.matched_at || row.updated_at))}</strong></div>
-      </div>
-      <pre class="code audit-card-code">${escapeHtml(JSON.stringify({ conditions: row.conditions, metrics: row.metrics || row.metrics_json, note: row.note }, null, 2))}</pre>
-    `;
-    return li;
-  };
-
-  const buildOrderCard = (order) => {
-    const li = document.createElement("li");
-    li.className = "card";
-    li.dataset.id = order.id;
-    li.innerHTML = `
-      <strong>${escapeHtml(order.provider)} 路 ${escapeHtml(order.status)}</strong>
-      <div class="meta">订单ID: ${escapeHtml(order.id)}</div>
-      <div class="meta">${escapeHtml(formatPair(order.merchant_name || "-", getOrderSummary(order) || "-"))}</div>
-      <div class="meta">送达: ${escapeHtml(formatDate(getOrderTimestamp(order)))} 路 预计取餐: ${escapeHtml(formatDate(order.expected_pickup_by))}</div>
-      <div class="meta">会话: ${escapeHtml(order.latest_session_id || "-")}</div>
-      <div class="btn-row">
-        <button class="ghost" data-action="deliver">模拟送达</button>
-        <button class="primary" data-action="arm">启动监控</button>
-        <button class="ghost" data-action="confirm">确认取餐</button>
-        <button class="ghost" data-action="timeline">查看时间线</button>
-      </div>
-    `;
-    li.querySelector('[data-action="deliver"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/integrations/mock/delivered/${order.id}`, { method: "POST" });
-        flashMeta("模拟送达完成");
-        await loadOrders();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta("模拟送达失败");
-      }
-    });
-    li.querySelector('[data-action="arm"]').addEventListener("click", async () => {
-      try {
-        const res = await fetchJson(`/orders/${order.id}/arm`, { method: "POST" });
-        flashMeta(`监控会话已启动：${res.session_id}`);
-        await loadOrders();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta("启动监控失败");
-      }
-    });
-    li.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/orders/${order.id}/confirm-pickup`, { method: "POST" });
-        flashMeta("已确认取餐");
-        await loadOrders();
-        await loadAlerts();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta("确认取餐失败");
-      }
-    });
-    li.querySelector('[data-action="timeline"]').addEventListener("click", async () => {
-      try {
-        const timeline = await fetchJson(`/orders/${order.id}/timeline`);
-        const output = $("alert-detail-output");
-        if (output) {
-          output.textContent = JSON.stringify(timeline, null, 2);
-        }
-        flashMeta("已加载订单时间线");
-      } catch (err) {
-        console.error(err);
-        flashMeta("加载时间线失败");
-      }
-    });
-    return li;
-  };
-
-  let buildAlertCard = (alert) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card alert-event-card";
-    li.dataset.id = alert.id;
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} 路 ${escapeHtml(alert.level || "-")}</strong>
-          <span class="hint">Alert Unit</span>
-        </div>
-        <span class="chip audit-status-chip is-hot">${escapeHtml(alert.status || "-")}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>等级</span><strong>${escapeHtml(alert.level || "-")}</strong></div>
-        <div class="meta"><span>时间</span><strong>${escapeHtml(formatDate(getAlertTimestamp(alert)))}</strong></div>
-        <div class="meta"><span>订单</span><strong>${escapeHtml(alert.order_id || "-")}</strong></div>
-      </div>
-      <div class="btn-row audit-card-actions">
-        <button class="ghost" data-action="detail">详情</button>
-        <button class="ghost" data-action="ack">确认</button>
-        <button class="ghost" data-action="resolve">结案</button>
-        <button class="ghost" data-action="false">误报</button>
-        <button class="primary" data-action="evidence">取证</button>
-      </div>
-    `;
-    li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-      await loadAlertDetail(alert.id);
-    });
-    li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/alerts/${alert.id}/ack`, { method: "POST" });
-        flashMeta("告警已确认");
-        await loadAlerts();
-      } catch (err) {
-        console.error(err);
-        flashMeta("告警确认失败");
-      }
-    });
-    li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/alerts/${alert.id}/resolve`, { method: "POST" });
-        flashMeta("告警已结案");
-        await loadAlerts();
-      } catch (err) {
-        console.error(err);
-        flashMeta("告警结案失败");
-      }
-    });
-    li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/alerts/${alert.id}/false-positive`, { method: "POST" });
-        flashMeta("已标记为误报");
-        await loadAlerts();
-      } catch (err) {
-        console.error(err);
-        flashMeta("误报标记失败");
-      }
-    });
-    li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-      await generateEvidence(alert.id);
-    });
-    return li;
-  };
-
-  buildAlertCard = (alert) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card alert-event-card";
-    li.dataset.id = alert.id;
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level || "-")}</strong>
-          <span class="hint">Alert Unit</span>
-        </div>
-        <span class="chip audit-status-chip is-hot">${escapeHtml(alert.status || "-")}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>等级</span><strong>${escapeHtml(alert.level || "-")}</strong></div>
-        <div class="meta"><span>时间</span><strong>${escapeHtml(formatDate(getAlertTimestamp(alert)))}</strong></div>
-        <div class="meta"><span>订单</span><strong>${escapeHtml(alert.order_id || "-")}</strong></div>
-      </div>
-      <div class="btn-row audit-card-actions">
-        <button class="ghost" data-action="detail">详情</button>
-        <button class="ghost" data-action="ack">确认</button>
-        <button class="ghost" data-action="resolve">结案</button>
-        <button class="ghost" data-action="false">误报</button>
-        <button class="primary" data-action="evidence">取证</button>
-      </div>
-    `;
-    li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-      await loadAlertDetail(alert.id);
-    });
-    li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "ack");
-    });
-    li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "resolve");
-    });
-    li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "false_positive");
-    });
-    li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-      await generateEvidence(alert.id);
-    });
-    return li;
-  };
-
-  ws.onmessage = async (evt) => {
-    const message = (evt.data || "").toString();
-    let payload = null;
-    try {
-      payload = JSON.parse(message);
-    } catch (err) {
-      payload = null;
-    }
-    const eventType = payload && typeof payload.type === "string" ? payload.type : message;
-    if (payload && payload.payload) {
-      const payloadData = payload.payload;
-      const entityType = payloadData.entity_type || payloadData.entityType || "";
-      const entity = payloadData.entity || null;
-      if ((entityType === "order" || eventType.includes("order")) && (entity || payloadData.order)) {
-        const order = entity || payloadData.order;
-        mergeListItem("orders-list", order.id, () => buildOrderCard(order));
-        mark("order");
-        return;
-      }
-      if ((entityType === "alert" || eventType.includes("alert")) && (entity || payloadData.alert)) {
-        const alert = entity || payloadData.alert;
-        mergeListItem("alerts-list", alert.id, () => buildAlertCard(alert));
-        mark("alert");
-        return;
-      }
-      if ((entityType === "device" || eventType.includes("device")) && (entity || payloadData.device)) {
-        const device = entity || payloadData.device;
-        mergeListItem("devices-list", device.id, () => buildDeviceCard(device));
-        mark("device");
-        return;
-      }
-      if ((entityType === "rule_match" || eventType.includes("rule")) && (entity || payloadData.match)) {
-        const match = entity || payloadData.match;
-        const filters = getRuleMatchFilters(state.ruleMatches.page || 1);
-        const signature = window.ruleMatchIndex && window.ruleMatchIndex.buildFilterSignature
-          ? window.ruleMatchIndex.buildFilterSignature(filters)
-          : "";
-        const acceptSignature = window.ruleMatchIndex && window.ruleMatchIndex.shouldAcceptIncremental
-          ? window.ruleMatchIndex.shouldAcceptIncremental(ruleMatchSignature, signature)
-          : true;
-        if (!acceptSignature) {
-          ruleMatchSignature = signature;
-          await loadRuleMatches(1);
-          return;
-        }
-        ruleMatchSignature = signature;
-        if (!match.id) {
-          await loadRuleMatches(1);
-          return;
-        }
-        const canInsert = window.wsLogic && window.wsLogic.shouldInsertRuleMatch
-          ? window.wsLogic.shouldInsertRuleMatch(match, filters, new Date())
-          : true;
-        if (canInsert) {
-          mergeListItem("rule-matches-list", match.id, () => buildRuleMatchCard(match));
-          state.ruleMatches.hasMore = true;
-          updateRuleMatchPager();
-        }
-        if (!match.matched_at) {
-          await loadTrends();
-          return;
-        }
-        if (!trendCache || !window.trendCache || !window.trendCache.applyRuleMatchIncrement) {
-          await loadTrends();
-          return;
-        }
-        const applied = window.trendCache.applyRuleMatchIncrement(trendCache, match.matched_at);
-        if (applied) {
-          renderTrendBars($("trend-rule-matches"), trendCache.rule_matches || [], "rules");
-          renderTrendMeta($("trend-rules-meta"), trendCache.rule_matches || []);
-        } else {
-          await loadTrends();
-        }
-        return;
-      }
-    }
-    if (eventType && eventType.includes("rule")) {
-      await loadRuleMatches(state.ruleMatches.page || 1);
-      return;
-    }
-    if (eventType.includes("alert")) {
-      mark("alert");
-    } else if (eventType.includes("order")) {
-      mark("order");
-    } else if (eventType.includes("device")) {
-      mark("device");
-    } else {
-      mark("unknown");
-    }
-  };
-  ws.onclose = () => {
-    setTimeout(connectWebSocket, 5000);
-  };
-
-  const flushPending = async () => {
-    if (document.hidden) {
-      return;
-    }
-    const snapshot = { ...pending };
-    pending = { orders: false, alerts: false, devices: false, reports: false };
-    if (snapshot.orders) {
-      await loadOrders();
-    }
-    if (snapshot.alerts) {
-      await loadAlerts();
-    }
-    if (snapshot.devices) {
-      await loadDevices();
-    }
-    if (snapshot.reports) {
-      await loadReports();
-    }
-  };
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      flushPending();
-    }
-  });
+  return appRealtimeClient.createRealtimeClient({
+    apiRoot: API_ROOT,
+    document,
+    location,
+    root: window,
+    ruleMatchIndex,
+    getRuleMatchFilters,
+    getRuleMatchPage: () => state.ruleMatches.page || 1,
+    getRuleMatchSignature: () => ruleMatchSignature,
+    setRuleMatchSignature: (value) => {
+      ruleMatchSignature = value;
+    },
+    setRuleMatchHasMore: (value) => {
+      state.ruleMatches.hasMore = value;
+    },
+    getTrendCache: () => trendCache,
+    loadOrders,
+    loadAlerts,
+    loadDevices,
+    loadReports,
+    loadTrends,
+    loadRuleMatches,
+    buildOrderCard,
+    buildAlertCard,
+    buildDeviceCard,
+    buildRuleMatchCard,
+    updateRuleMatchPager,
+    renderTrendBars,
+    renderTrendMeta,
+  }).connect();
 }
 
 function bindEvents() {
+  if (appEventsBound) {
+    return;
+  }
+  appEventsBound = true;
   const importForm = $("import-form");
   if (importForm) {
     importForm.addEventListener("submit", importOrder);
@@ -2427,8 +1972,8 @@ function bindEvents() {
   if (exportSummary) {
     exportSummary.addEventListener("click", async () => {
       try {
-        const query = apiParams.buildSummaryQuery
-          ? apiParams.buildSummaryQuery(getReportRangeFilters())
+    const query = appApiParams.buildSummaryQuery
+      ? appApiParams.buildSummaryQuery(getReportRangeFilters())
           : "scope=user";
         await downloadWithAuth(`/reports/summary/export?${query}`, "report-summary.csv");
       } catch (err) {
@@ -2441,8 +1986,8 @@ function bindEvents() {
   if (exportTrends) {
     exportTrends.addEventListener("click", async () => {
       try {
-        const query = apiParams.buildTrendsQuery
-          ? apiParams.buildTrendsQuery(getTrendFilters())
+    const query = appApiParams.buildTrendsQuery
+      ? appApiParams.buildTrendsQuery(getTrendFilters())
           : `scope=user&interval=${state.reportInterval || "day"}&days=7`;
         await downloadWithAuth(`/reports/trends/export?${query}`, "report-trends.csv");
       } catch (err) {
@@ -2455,8 +2000,8 @@ function bindEvents() {
   if (exportRuleMatches) {
     exportRuleMatches.addEventListener("click", async () => {
       try {
-        const query = apiParams.buildRuleMatchesExportQuery
-          ? apiParams.buildRuleMatchesExportQuery(getRuleMatchFilters(1, 200))
+    const query = appApiParams.buildRuleMatchesExportQuery
+      ? appApiParams.buildRuleMatchesExportQuery(getRuleMatchFilters(1, 200))
           : "scope=user&limit=200";
         await downloadWithAuth(`/reports/rule-matches/export?${query}`, "rule-matches.csv");
       } catch (err) {
@@ -2871,11 +2416,71 @@ function initFilters() {
   });
 }
 
+function activateWorkspacePage(id, options = {}) {
+  const target = document.getElementById(id);
+  if (!target) {
+    return false;
+  }
+  const ownerId = WORKSPACE_ANCHOR_OWNER[id];
+  const workspaceTarget =
+    target.matches("[data-workspace-page], #overview")
+      ? target
+      : (ownerId ? document.getElementById(ownerId) : target.closest("[data-workspace-page]"));
+  if (!workspaceTarget) {
+    return false;
+  }
+  document.querySelectorAll("[data-workspace-page], #overview").forEach((section) => {
+    section.classList.toggle("is-current-workspace", section === workspaceTarget);
+  });
+  document.querySelectorAll('.nav a[href^="#"]').forEach((link) => {
+    const href = link.getAttribute("href");
+    link.classList.toggle("is-active", href === `#${id}` || href === `#${workspaceTarget.id}`);
+  });
+  document.body.dataset.workspace = workspaceTarget.id;
+  if (options.updateHash !== false && window.history?.replaceState) {
+    window.history.replaceState(null, "", `#${id}`);
+  }
+  if (options.scroll !== false) {
+    target.scrollIntoView({ behavior: options.behavior || "smooth", block: "start" });
+  }
+  return true;
+}
+
+function initWorkspaceNavigation() {
+  const links = Array.from(document.querySelectorAll('.nav a[href^="#"]'));
+  links.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const id = link.getAttribute("href")?.slice(1);
+      if (!id || !document.getElementById(id)) {
+        return;
+      }
+      event.preventDefault();
+      activateWorkspacePage(id);
+    });
+  });
+  const initialId = window.location.hash?.slice(1) || "overview";
+  activateWorkspacePage(document.getElementById(initialId) ? initialId : "overview", {
+    scroll: false,
+    updateHash: Boolean(window.location.hash),
+  });
+  document.querySelectorAll("[data-workspace-back]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activateWorkspacePage("overview");
+      flashMeta("已返回概览");
+    });
+  });
+}
+
 function initLandingActions() {
+  const scrollToId = (id) => activateWorkspacePage(id);
+
   const scrollToSection = (selector) => {
     const target = document.querySelector(selector);
     if (!target) {
       return false;
+    }
+    if (target.id) {
+      return activateWorkspacePage(target.id);
     }
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     return true;
@@ -2908,19 +2513,17 @@ function initLandingActions() {
     }
   });
 
-  bindClick("hero-connect-btn", () => {
-    const ok = scrollToSection("#ops");
-    flashMeta(ok ? "已进入接入区，先导入订单再启用推送" : "未找到接入区");
-  });
+  bindClick("hero-connect-btn", () => scrollToId("ops") && flashMeta("已进入订单导入区，完成导入后即可启动防护"));
 
   bindClick("hero-demo-btn", () => {
-    const toggle = document.getElementById("console-demo-toggle");
-    if (toggle) {
-      toggle.click();
-      flashMeta(document.body.dataset.demoLoop === "on" ? "演示模式已启动" : "演示模式已关闭");
-      return;
-    }
-    flashMeta("未找到演示模式控制");
+    scrollToId("alerts");
+    flashMeta("已定位到最新告警矩阵");
+  });
+
+  bindClick("footer-health-link", async (event) => {
+    event.preventDefault();
+    scrollToId("ops");
+    await renderSystemHealth();
   });
 
   bindClick("cases-view-all-btn", () => {
@@ -3186,6 +2789,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initStyleConsole();
   initFilters();
   initLandingActions();
+  initWorkspaceNavigation();
   const demo = initDemoLoop();
   initReveal();
   initScrollState();
@@ -3229,1523 +2833,3 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-const setSelectedAlertCard = (alertId) => {
-  const normalizedAlertId = alertId == null ? "" : String(alertId);
-  document.querySelectorAll(".alert-event-card.is-selected").forEach((card) => {
-    card.classList.remove("is-selected");
-  });
-  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
-  if (detailPanel) {
-    if (normalizedAlertId) {
-      detailPanel.dataset.alertId = normalizedAlertId;
-    } else {
-      delete detailPanel.dataset.alertId;
-    }
-  }
-  if (!normalizedAlertId) {
-    return;
-  }
-  const targetCard = document.querySelector(`#alerts-list .alert-event-card[data-id="${normalizedAlertId}"]`);
-  if (targetCard) {
-    targetCard.classList.add("is-selected");
-  }
-};
-
-const setEvidenceBayState = ({ loaded = false, evidence = false } = {}) => {
-  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
-  if (!detailPanel) {
-    return;
-  }
-  detailPanel.classList.toggle("is-loaded", loaded);
-  detailPanel.classList.toggle("is-evidence", evidence);
-};
-
-renderAlerts = function renderAlerts(alerts) {
-  const listEl = $("alerts-list");
-  const activeAlertId = document.querySelector("#alert-detail .evidence-bay-panel")?.dataset.alertId || "";
-  renderList(
-    listEl,
-    alerts,
-    (alert) => {
-      const li = document.createElement("li");
-      li.className = "card audit-card alert-event-card";
-      li.dataset.id = alert.id;
-      if (String(alert.id || "") === activeAlertId) {
-        li.classList.add("is-selected");
-      }
-      li.innerHTML = `
-        <div class="audit-card-head">
-          <div class="audit-card-title">
-            <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level || "-")}</strong>
-            <span class="hint">Alert Unit</span>
-          </div>
-          <span class="chip audit-status-chip is-hot">${escapeHtml(alert.status || "-")}</span>
-        </div>
-        <div class="audit-card-meta-grid">
-          <div class="meta"><span>等级</span><strong>${escapeHtml(alert.level || "-")}</strong></div>
-          <div class="meta"><span>时间</span><strong>${escapeHtml(formatDate(getAlertTimestamp(alert)))}</strong></div>
-          <div class="meta"><span>订单</span><strong>${escapeHtml(alert.order_id || "-")}</strong></div>
-        </div>
-        <div class="btn-row audit-card-actions">
-          <button class="ghost" data-action="detail">详情</button>
-          <button class="ghost" data-action="ack">确认</button>
-          <button class="ghost" data-action="resolve">结案</button>
-          <button class="ghost" data-action="false">误报</button>
-          <button class="primary" data-action="evidence">取证</button>
-        </div>
-      `;
-      li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-        setSelectedAlertCard(alert.id);
-        await loadAlertDetail(alert.id);
-      });
-      li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "ack");
-      });
-      li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "resolve");
-      });
-      li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "false_positive");
-      });
-      li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-        setSelectedAlertCard(alert.id);
-        await generateEvidence(alert.id);
-      });
-      return li;
-    },
-    "暂无告警"
-  );
-};
-
-loadAlertDetail = async function loadAlertDetail(alertId) {
-  setSelectedAlertCard(alertId);
-  setEvidenceBayState({ loaded: false, evidence: false });
-  try {
-    const detail = await fetchJson(`/alerts/${alertId}`);
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(detail, null, 2);
-    }
-    const mediaList = $("alert-media");
-    if (mediaList) {
-      mediaList.innerHTML = "";
-      if (!detail.media || detail.media.length === 0) {
-        mediaList.innerHTML = '<div class="meta">暂无证据媒体</div>';
-      } else {
-        detail.media.forEach((media) => {
-          const img = document.createElement("img");
-          img.src = `${API_ROOT}${media.download_url}`;
-          img.alt = media.type || "media";
-          mediaList.appendChild(img);
-        });
-      }
-    }
-    setEvidenceBayState({ loaded: true, evidence: false });
-    flashMeta("告警详情已加载");
-  } catch (err) {
-    console.error(err);
-    setEvidenceBayState({ loaded: false, evidence: false });
-    flashMeta(getErrorMessage(err, "加载告警详情失败"));
-  }
-};
-
-generateEvidence = async function generateEvidence(alertId) {
-  setSelectedAlertCard(alertId);
-  setEvidenceBayState({ loaded: true, evidence: false });
-  try {
-    const res = await fetchJson(`/evidence/${alertId}/generate`, { method: "POST" });
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(res, null, 2);
-    }
-    setEvidenceBayState({ loaded: true, evidence: true });
-    flashMeta("取证包生成完成");
-  } catch (err) {
-    console.error(err);
-    setEvidenceBayState({ loaded: true, evidence: false });
-    flashMeta(getErrorMessage(err, "生成取证包失败"));
-  }
-};
-
-/*
-
-renderTrendBars = function renderTrendBars(container, rows, variant) {
-  if (!container) {
-    return;
-  }
-  container.innerHTML = "";
-  if (!rows || rows.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "meta";
-    empty.textContent = "鏆傛棤瓒嬪娍鏁版嵁";
-    container.appendChild(empty);
-    return;
-  }
-  const maxVal = Math.max(...rows.map((r) => toNumber(r.count, 0)), 1);
-  rows.forEach((row) => {
-    const label = row.day || row.week || "-";
-    const count = toNumber(row.count, 0);
-    const bar = document.createElement("div");
-    bar.className = `trend-bar ${variant}`.trim();
-    bar.innerHTML = `
-      <span class="label"><i class="dot"></i>${escapeHtml(label)}</span>
-      <div class="bar" style="width:${Math.max(6, Math.round((count / maxVal) * 100))}%;"></div>
-      <strong>${escapeHtml(count)}</strong>
-    `;
-    container.appendChild(bar);
-  });
-};
-
-renderTrendMeta = function renderTrendMeta(container, rows) {
-  if (!container) {
-    return;
-  }
-  if (!rows || rows.length === 0) {
-    container.textContent = "鏆傛棤缁熻";
-    return;
-  }
-  const total = rows.reduce((sum, r) => sum + toNumber(r.count, 0), 0);
-  const peak = Math.max(...rows.map((r) => toNumber(r.count, 0)), 0);
-  container.innerHTML = `<span>鎬昏 <strong>${escapeHtml(total)}</strong></span><span>宄板€?<strong>${escapeHtml(peak)}</strong></span>`;
-};
-
-loadRuleMatches = async function loadRuleMatches(page = 1) {
-  const filters = getRuleMatchFilters(page);
-  const limit = filters.limit;
-  const query = apiParams.buildRuleMatchesQuery
-    ? apiParams.buildRuleMatchesQuery(filters)
-    : `limit=${limit}&offset=${filters.offset}`;
-  try {
-    const rows = await fetchJson(`/rules/matches?${query}`);
-    state.ruleMatches.page = page;
-    state.ruleMatches.hasMore = Array.isArray(rows) && rows.length === limit;
-    if (window.ruleMatchIndex && window.ruleMatchIndex.buildFilterSignature) {
-      ruleMatchSignature = window.ruleMatchIndex.buildFilterSignature(filters);
-    }
-    renderRuleMatches(rows || []);
-    updateRuleMatchPager();
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鍔犺浇瑙勫垯鍛戒腑澶辫触"));
-  }
-};
-
-renderRuleMatches = function renderRuleMatches(rows) {
-  const listEl = $("rule-matches-list");
-  renderList(listEl, rows, buildRuleMatchCard, "鏆傛棤瑙勫垯鍛戒腑");
-  if (window.ruleMatchIndex && window.ruleMatchIndex.rebuildIndex) {
-    ruleMatchIndex = window.ruleMatchIndex.rebuildIndex(listEl);
-  } else {
-    ruleMatchIndex = new Map();
-  }
-};
-
-updateRuleMatchPager = function updateRuleMatchPager() {
-  const pageLabel = $("rule-matches-page");
-  if (pageLabel) {
-    pageLabel.textContent = `绗?${state.ruleMatches.page} 椤礰;
-  }
-  const prevBtn = $("rule-matches-prev");
-  const nextBtn = $("rule-matches-next");
-  if (prevBtn) {
-    prevBtn.disabled = state.ruleMatches.page <= 1;
-  }
-  if (nextBtn) {
-    nextBtn.disabled = !state.ruleMatches.hasMore;
-  }
-};
-
-renderOrders = function renderOrders(orders) {
-  const listEl = $("orders-list");
-  renderList(
-    listEl,
-    orders,
-    (order) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = order.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(order.provider)} / ${escapeHtml(order.status)}</strong>
-        <div class="meta">璁㈠崟 ID锛?{escapeHtml(order.id)}</div>
-        <div class="meta">${escapeHtml(formatPair(order.merchant_name || "-", getOrderSummary(order) || "-"))}</div>
-        <div class="meta">閫佽揪鏃堕棿锛?{escapeHtml(formatDate(getOrderTimestamp(order)))} / 棰勮鍙栭锛?{escapeHtml(formatDate(order.expected_pickup_by))}</div>
-        <div class="meta">鍏宠仈浼氳瘽锛?{escapeHtml(order.latest_session_id || "-")}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="deliver">妯℃嫙閫佽揪</button>
-          <button class="primary" data-action="arm">鍚姩鐩戞帶</button>
-          <button class="ghost" data-action="confirm">纭鍙栭</button>
-          <button class="ghost" data-action="timeline">鏌ョ湅鏃堕棿绾?/button>
-        </div>
-      `;
-      li.querySelector('[data-action="deliver"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/integrations/mock/delivered/${order.id}`, { method: "POST" });
-          flashMeta("妯℃嫙閫佽揪瀹屾垚");
-          await loadOrders();
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta(getErrorMessage(err, "妯℃嫙閫佽揪澶辫触"));
-        }
-      });
-      li.querySelector('[data-action="arm"]').addEventListener("click", async () => {
-        try {
-          const res = await fetchJson(`/orders/${order.id}/arm`, { method: "POST" });
-          flashMeta(`鐩戞帶浼氳瘽宸插惎鍔細${res.session_id || "-"}`);
-          await loadOrders();
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta(getErrorMessage(err, "鍚姩鐩戞帶澶辫触"));
-        }
-      });
-      li.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
-        try {
-          await fetchJson(`/orders/${order.id}/confirm-pickup`, { method: "POST" });
-          flashMeta("宸茬‘璁ゅ彇椁?);
-          await loadOrders();
-          await loadAlerts();
-          await loadReports();
-        } catch (err) {
-          console.error(err);
-          flashMeta(getErrorMessage(err, "纭鍙栭澶辫触"));
-        }
-      });
-      li.querySelector('[data-action="timeline"]').addEventListener("click", async () => {
-        try {
-          const timeline = await fetchJson(`/orders/${order.id}/timeline`);
-          const output = $("alert-detail-output");
-          if (output) {
-            output.textContent = JSON.stringify(timeline, null, 2);
-          }
-          flashMeta("璁㈠崟鏃堕棿绾垮凡鍔犺浇");
-        } catch (err) {
-          console.error(err);
-          flashMeta(getErrorMessage(err, "鍔犺浇鏃堕棿绾垮け璐?));
-        }
-      });
-      return li;
-    },
-    "鏆傛棤璁㈠崟",
-  );
-};
-
-runAlertAction = async function runAlertAction(alertId, action) {
-  const getMeta =
-    alertActionsApi.getAlertActionMeta ||
-    ((name) => {
-      if (name === "ack") {
-        return { pathSuffix: "ack", successMessage: "鍛婅宸茬‘璁?, errorMessage: "鍛婅纭澶辫触" };
-      }
-      if (name === "resolve") {
-        return { pathSuffix: "resolve", successMessage: "鍛婅宸茬粨妗?, errorMessage: "鍛婅缁撴澶辫触" };
-      }
-      if (name === "false_positive") {
-        return { pathSuffix: "false-positive", successMessage: "宸叉爣璁颁负璇姤", errorMessage: "璇姤鏍囪澶辫触" };
-      }
-      throw new Error(`Unknown alert action: ${name}`);
-    });
-  const meta = getMeta(action);
-  try {
-    await fetchJson(`/alerts/${alertId}/${meta.pathSuffix}`, { method: "POST" });
-    flashMeta(meta.successMessage);
-    await loadAlerts();
-    await loadReports();
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, meta.errorMessage));
-  }
-};
-
-const setSelectedAlertCard = (alertId) => {
-  const normalizedAlertId = alertId == null ? "" : String(alertId);
-  document.querySelectorAll(".alert-event-card.is-selected").forEach((card) => {
-    card.classList.remove("is-selected");
-  });
-  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
-  if (detailPanel) {
-    if (normalizedAlertId) {
-      detailPanel.dataset.alertId = normalizedAlertId;
-    } else {
-      delete detailPanel.dataset.alertId;
-    }
-  }
-  if (!normalizedAlertId) {
-    return;
-  }
-  const targetCard = document.querySelector(`#alerts-list .alert-event-card[data-id="${normalizedAlertId}"]`);
-  if (targetCard) {
-    targetCard.classList.add("is-selected");
-  }
-};
-
-const setEvidenceBayState = ({ loaded = false, evidence = false } = {}) => {
-  const detailPanel = document.querySelector("#alert-detail .evidence-bay-panel");
-  if (!detailPanel) {
-    return;
-  }
-  detailPanel.classList.toggle("is-loaded", loaded);
-  detailPanel.classList.toggle("is-evidence", evidence);
-};
-
-renderAlerts = function renderAlerts(alerts) {
-  const listEl = $("alerts-list");
-  renderList(
-    listEl,
-    alerts,
-    (alert) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = alert.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level)}</strong>
-        <div class="meta">鐘舵€侊細${escapeHtml(alert.status)} / 鏃堕棿锛?{escapeHtml(formatDate(getAlertTimestamp(alert)))}</div>
-        <div class="meta">璁㈠崟锛?{escapeHtml(alert.order_id)}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="detail">璇︽儏</button>
-          <button class="ghost" data-action="ack">纭</button>
-          <button class="ghost" data-action="resolve">缁撴</button>
-          <button class="ghost" data-action="false">璇姤</button>
-          <button class="primary" data-action="evidence">鍙栬瘉</button>
-        </div>
-      `;
-      li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-        await loadAlertDetail(alert.id);
-      });
-      li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "ack");
-      });
-      li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "resolve");
-      });
-      li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "false_positive");
-      });
-      li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-        await generateEvidence(alert.id);
-      });
-      return li;
-    },
-    "鏆傛棤鍛婅",
-  );
-};
-
-loadAlertDetail = async function loadAlertDetail(alertId) {
-  try {
-    const detail = await fetchJson(`/alerts/${alertId}`);
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(detail, null, 2);
-    }
-    const mediaList = $("alert-media");
-    if (mediaList) {
-      mediaList.innerHTML = "";
-      if (!detail.media || detail.media.length === 0) {
-        mediaList.innerHTML = '<div class="meta">鏆傛棤璇佹嵁濯掍綋</div>';
-      } else {
-        detail.media.forEach((media) => {
-          const img = document.createElement("img");
-          img.src = `${API_ROOT}${media.download_url}`;
-          img.alt = media.type || "media";
-          mediaList.appendChild(img);
-        });
-      }
-    }
-    flashMeta("鍛婅璇︽儏宸插姞杞?);
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鍔犺浇鍛婅璇︽儏澶辫触"));
-  }
-};
-
-generateEvidence = async function generateEvidence(alertId) {
-  try {
-    const res = await fetchJson(`/evidence/${alertId}/generate`, { method: "POST" });
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(res, null, 2);
-    }
-    flashMeta("鍙栬瘉鍖呯敓鎴愬畬鎴?);
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鐢熸垚鍙栬瘉鍖呭け璐?));
-  }
-};
-
-renderDevices = function renderDevices(devices) {
-  const listEl = $("devices-list");
-  renderList(
-    listEl,
-    devices,
-    (device) => {
-      const li = document.createElement("li");
-      li.className = "card";
-      li.dataset.id = device.id;
-      li.innerHTML = `
-        <strong>${escapeHtml(getDeviceSummary(device) || device.name)}</strong>
-        <div class="meta">绫诲瀷锛?{escapeHtml(device.device_type)} / 鐘舵€侊細${escapeHtml(device.status)} / 鏇存柊鏃堕棿锛?{escapeHtml(formatDate(getDeviceTimestamp(device)))}</div>
-        <div class="meta">璁惧鐮侊細${escapeHtml(device.device_code || "-")}</div>
-        <div class="btn-row">
-          <button class="ghost" data-action="select">閫夋嫨璁惧</button>
-        </div>
-      `;
-      li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-        await selectDevice(device);
-      });
-      return li;
-    },
-    "鏆傛棤璁惧",
-  );
-};
-
-selectDevice = async function selectDevice(device) {
-  state.deviceId = device.id;
-  state.deviceCode = device.device_code || state.deviceCode;
-  const selected = $("selected-device");
-  if (selected) {
-    selected.textContent = `褰撳墠閫夋嫨锛?{device.name || device.id}`;
-  }
-  await loadDeviceConfig(device.id);
-};
-
-loadDeviceConfig = async function loadDeviceConfig(deviceId) {
-  try {
-    const detail = await fetchJson(`/devices/${deviceId}`);
-    const sensitivity = (detail.config || {}).sensitivity || {};
-    const minMotion = $("min-motion");
-    const maxDrop = $("max-drop");
-    if (minMotion) {
-      minMotion.value = sensitivity.min_motion_score ?? "";
-    }
-    if (maxDrop) {
-      maxDrop.value = sensitivity.max_weight_drop ?? "";
-    }
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鍔犺浇璁惧閰嶇疆澶辫触"));
-  }
-};
-
-loadHealth = async function loadHealth() {
-  if (!state.deviceId) {
-    flashMeta("璇峰厛閫夋嫨璁惧");
-    return;
-  }
-  try {
-    const health = await fetchJson(`/devices/${state.deviceId}/health`);
-    const output = $("health-output");
-    if (output) {
-      output.textContent = JSON.stringify(health, null, 2);
-    }
-    flashMeta("璁惧鍋ュ悍淇℃伅宸插姞杞?);
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鍔犺浇鍋ュ悍淇℃伅澶辫触"));
-  }
-};
-
-saveDeviceConfig = async function saveDeviceConfig() {
-  if (!state.deviceId) {
-    flashMeta("璇峰厛閫夋嫨璁惧");
-    return;
-  }
-  const minMotion = toNumber($("min-motion")?.value, 0);
-  const maxDrop = toNumber($("max-drop")?.value, 0);
-  try {
-    const result = await fetchJson(`/devices/${state.deviceId}/config`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        sensitivity: {
-          min_motion_score: minMotion,
-          max_weight_drop: maxDrop,
-        },
-      }),
-    });
-    const sensitivity = (result?.config || {}).sensitivity || {};
-    const minMotionInput = $("min-motion");
-    const maxDropInput = $("max-drop");
-    if (minMotionInput) {
-      minMotionInput.value = sensitivity.min_motion_score ?? minMotion;
-    }
-    if (maxDropInput) {
-      maxDropInput.value = sensitivity.max_weight_drop ?? maxDrop;
-    }
-    flashMeta("璁惧閰嶇疆宸蹭繚瀛?);
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "淇濆瓨璁惧閰嶇疆澶辫触"));
-  }
-};
-
-if (typeof populateRuleSetSelect === "function") {
-  populateRuleSetSelect = function populateRuleSetSelect(sets) {
-    const editorSelect = $("rule-set-select");
-    const filterSelect = $("rule-match-rule-set");
-    const buildOptions =
-      ruleSetSelectApi.buildRuleSetSelectOptions ||
-      ((items = []) => ({
-        editorOptions: items.map((set) => ({
-          value: set.id,
-          label: `${set.name} / ${set.scope === "global" ? "鍏ㄥ眬" : "涓汉"}`,
-        })),
-        filterOptions: [{ value: "", label: "鍏ㄩ儴瑙勫垯闆? }],
-      }));
-    const replaceOptions =
-      ruleSetSelectApi.replaceSelectOptions ||
-      ((select, options) => {
-        if (!select) {
-          return;
-        }
-        select.innerHTML = "";
-        options.forEach((item) => {
-          const option = document.createElement("option");
-          option.value = item.value;
-          option.textContent = item.label;
-          select.appendChild(option);
-        });
-      });
-    const { editorOptions, filterOptions } = buildOptions(sets || []);
-    replaceOptions(editorSelect, editorOptions);
-    replaceOptions(filterSelect, filterOptions);
-  };
-}
-
-if (typeof initRules === "function") {
-  const originalInitRules = initRules;
-  initRules = async function initRules() {
-    await originalInitRules();
-    const ruleEditing = $("rule-editing");
-    const dslResult = $("dsl-result");
-    const globalToggle = $("rule-set-global");
-    if (ruleEditing && (!ruleEditing.textContent || ruleEditing.textContent.includes("缂傛牞绶?) || ruleEditing.textContent.includes("閸掓稑缂?))) {
-      ruleEditing.textContent = "鍒涘缓鏂拌鍒欙紝鎴栦粠宸︿晶閫夋嫨宸叉湁瑙勫垯缁х画缂栬緫銆?;
-    }
-    if (dslResult && (!dslResult.textContent || dslResult.textContent.includes("缁涘绶?))) {
-      dslResult.textContent = "绛夊緟鏍￠獙...";
-    }
-    if (globalToggle && state.user && !state.user.is_admin) {
-      globalToggle.title = "浠呯鐞嗗憳鍙互鍒涘缓鍏ㄥ眬瑙勫垯闆?;
-    }
-  };
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const demoToggle = document.getElementById("console-demo-toggle");
-  const demoPause = document.getElementById("console-demo-pause");
-  if (demoToggle) {
-    demoToggle.textContent = document.body.dataset.demoLoop === "on" ? "停止演示" : "启动演示";
-  }
-  if (demoPause) {
-    const paused = document.body.dataset.demoPaused === "on";
-    demoPause.textContent = paused ? "继续" : "暂停";
-  }
-});
-
-loadAudit = async function loadAudit() {
-  return withInFlight("audit", async () => {
-    try {
-      const rows = await fetchJson("/audit");
-      const listEl = $("audit-list");
-      renderList(
-        listEl,
-        rows || [],
-        (row) => {
-          const li = document.createElement("li");
-          li.className = "card";
-          li.innerHTML = `
-            <strong>${escapeHtml(row.action)}</strong>
-            <div class="meta">${escapeHtml(row.resource_type)} / ${escapeHtml(row.resource_id || "-")}</div>
-            <div class="meta">${escapeHtml(formatDate(row.created_at))}</div>
-          `;
-          return li;
-        },
-        "鏆傛棤瀹¤鏃ュ織",
-      );
-    } catch (err) {
-      console.error(err);
-      flashMeta(getErrorMessage(err, "鍔犺浇瀹¤鏃ュ織澶辫触"));
-    }
-  });
-};
-
-verifyPickupCode = async function verifyPickupCode() {
-  const code = $("pickup-code")?.value?.trim();
-  if (!code) {
-    flashMeta("璇疯緭鍏ュ彇椁愮爜");
-    return;
-  }
-  try {
-    const res = await fetchJson(
-      "/whitelist/verify-code",
-      {
-        method: "POST",
-        body: JSON.stringify({ code }),
-      },
-      false,
-    );
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(res, null, 2);
-    }
-    flashMeta("鍙栭鐮侀獙璇佸畬鎴?);
-    await loadOrders();
-    await loadAlerts();
-    await loadReports();
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鍙栭鐮侀獙璇佸け璐?));
-  }
-};
-
-importOrder = async function importOrder(evt) {
-  evt.preventDefault();
-  const merchant = $("merchant")?.value?.trim();
-  const summary = $("summary")?.value?.trim();
-  const pickupWindow = toNumber($("pickup-window")?.value, 30);
-  if (!merchant && !summary) {
-    flashMeta("璇疯緭鍏ュ晢瀹舵垨鍟嗗搧鎽樿");
-    return;
-  }
-  try {
-    await fetchJson("/orders/manual-import", {
-      method: "POST",
-      body: JSON.stringify({
-        provider: "manual",
-        merchant_name: merchant,
-        item_summary: summary,
-        expected_pickup_minutes: pickupWindow,
-      }),
-    });
-    flashMeta("璁㈠崟瀵煎叆瀹屾垚");
-    await loadOrders();
-    await loadReports();
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "璁㈠崟瀵煎叆澶辫触"));
-  }
-};
-
-registerPush = async function registerPush() {
-  if (!("serviceWorker" in navigator)) {
-    flashMeta("褰撳墠娴忚鍣ㄤ笉鏀寔鎺ㄩ€?);
-    return;
-  }
-  try {
-    const config = await fetchJson("/config", {}, false);
-    if (!config.vapidPublicKey) {
-      flashMeta("VAPID 鍏挜鏈厤缃?);
-      return;
-    }
-    const reg = await navigator.serviceWorker.register("./sw.js?v=20260417-console-copy-fix");
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey),
-    });
-    const payload = {
-      platform: "web",
-      endpoint: sub.endpoint,
-      p256dh: bufferToBase64(sub.getKey("p256dh")),
-      auth: bufferToBase64(sub.getKey("auth")),
-      device_fingerprint: navigator.userAgent,
-    };
-    await fetchJson("/me/push-subscriptions", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    flashMeta("鎺ㄩ€佽闃呭凡鍚敤");
-  } catch (err) {
-    console.error(err);
-    flashMeta(getErrorMessage(err, "鎺ㄩ€佽闃呭け璐?));
-  }
-};
-
-if (typeof initRules === "function") {
-  const previousInitRules = initRules;
-  initRules = async function initRules() {
-    await previousInitRules();
-
-    const ruleEditing = $("rule-editing");
-    const dslResult = $("dsl-result");
-    const ruleSetsList = $("rule-sets");
-    const rulesList = $("rules-list");
-    const ruleSetSelect = $("rule-set-select");
-    const globalToggle = $("rule-set-global");
-
-    if (ruleEditing) {
-      ruleEditing.textContent = "鍒涘缓鏂拌鍒欙紝鎴栦粠宸︿晶閫夋嫨宸叉湁瑙勫垯缁х画缂栬緫銆?;
-    }
-    if (dslResult && (!dslResult.textContent || dslResult.textContent.includes("缁涘绶?) || dslResult.textContent.includes("绛夊緟"))) {
-      dslResult.textContent = "绛夊緟鏍￠獙...";
-      dslResult.classList.remove("ok", "error", "warn");
-    }
-    if (globalToggle && state.user && !state.user.is_admin) {
-      globalToggle.title = "浠呯鐞嗗憳鍙互鍒涘缓鍏ㄥ眬瑙勫垯闆?;
-    }
-
-    if (window.rulesApi) {
-      const originalListSetsWithGlobal = window.rulesApi.listSetsWithGlobal;
-      const originalListRules = window.rulesApi.listRules;
-      const originalCreateSet = window.rulesApi.createSet;
-      const originalUpdateSet = window.rulesApi.updateSet;
-      const originalCreateRule = window.rulesApi.createRule;
-      const originalUpdateRule = window.rulesApi.updateRule;
-      const originalDeleteRule = window.rulesApi.deleteRule;
-      const originalValidateDsl = window.rulesApi.validateDsl;
-      const originalEvaluateDsl = window.rulesApi.evaluateDsl;
-
-      const currentDslValue = () => {
-        const preview = $("dsl-preview");
-        if (!preview || !preview.textContent.trim()) {
-          return null;
-        }
-        return safeJsonParse(preview.textContent);
-      };
-
-      const renderRuleSetCards = (sets) => {
-        renderList(
-          ruleSetsList,
-          sets,
-          (set) => {
-            const li = document.createElement("li");
-            li.className = "card";
-            li.innerHTML = `
-              <strong>${escapeHtml(set.name)}</strong>
-              <div class="meta">${escapeHtml(set.description || "鏆傛棤璇存槑")}</div>
-              <div class="meta">鑼冨洿锛?{escapeHtml(set.scope === "global" ? "鍏ㄥ眬" : "涓汉")} / 鐘舵€侊細${set.enabled ? "鍚敤" : "鍋滅敤"}</div>
-              <div class="btn-row">
-                <button class="ghost" data-action="select">閫夋嫨</button>
-                <button class="ghost" data-action="toggle">${set.enabled ? "鍋滅敤" : "鍚敤"}</button>
-              </div>
-            `;
-            li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-              if (ruleSetSelect) {
-                ruleSetSelect.value = set.id;
-                ruleSetSelect.dispatchEvent(new Event("change"));
-              }
-            });
-            li.querySelector('[data-action="toggle"]').addEventListener("click", async () => {
-              try {
-                await originalUpdateSet(state.token, set.id, { enabled: !set.enabled });
-                const refreshed = await originalListSetsWithGlobal(state.token);
-                renderRuleSetCards(refreshed || []);
-                if (typeof populateRuleSetSelect === "function") {
-                  populateRuleSetSelect(refreshed || []);
-                }
-              } catch (err) {
-                console.error(err);
-                flashMeta(getErrorMessage(err, "鏇存柊瑙勫垯闆嗗け璐?));
-              }
-            });
-            return li;
-          },
-          "鏆傛棤瑙勫垯闆?,
-        );
-      };
-
-      const renderRuleCards = (rules) => {
-        renderList(
-          rulesList,
-          rules,
-          (rule) => {
-            const li = document.createElement("li");
-            li.className = "card";
-            li.innerHTML = `
-              <strong>${escapeHtml(rule.name)}</strong>
-              <div class="meta">浜嬩欢锛?{escapeHtml(rule.event_type)} / 鍔ㄤ綔锛?{escapeHtml(rule.action || "alert")} / 浼樺厛绾э細${escapeHtml(rule.priority)}</div>
-              <div class="meta">鍐峰嵈锛?{escapeHtml(rule.cooldown_sec)} 绉?/ 鐘舵€侊細${rule.enabled ? "鍚敤" : "鍋滅敤"}</div>
-              <div class="btn-row">
-                <button class="ghost" data-action="edit">缂栬緫</button>
-                <button class="ghost" data-action="delete">鍒犻櫎</button>
-              </div>
-            `;
-            li.querySelector('[data-action="edit"]').addEventListener("click", () => {
-              const nameInput = $("rule-name");
-              const eventTypeSelect = $("rule-event-type");
-              const ruleActionSelect = $("rule-action");
-              const rulePriorityInput = $("rule-priority");
-              const ruleCooldownInput = $("rule-cooldown");
-              const ruleEnabledInput = $("rule-enabled");
-              const dslPreview = $("dsl-preview");
-              if (nameInput) {
-                nameInput.value = rule.name || "";
-              }
-              if (eventTypeSelect) {
-                eventTypeSelect.value = rule.event_type || "motion";
-              }
-              if (ruleActionSelect) {
-                ruleActionSelect.value = rule.action || "alert";
-              }
-              if (rulePriorityInput) {
-                rulePriorityInput.value = rule.priority ?? 100;
-              }
-              if (ruleCooldownInput) {
-                ruleCooldownInput.value = rule.cooldown_sec ?? 120;
-              }
-              if (ruleEnabledInput) {
-                ruleEnabledInput.checked = Boolean(rule.enabled);
-              }
-              if (dslPreview) {
-                dslPreview.textContent = JSON.stringify(rule.dsl_json || rule.conditions || {}, null, 2);
-              }
-              if (ruleEditing) {
-                ruleEditing.dataset.ruleId = rule.id;
-                ruleEditing.textContent = `姝ｅ湪缂栬緫锛?{rule.name}`;
-              }
-            });
-            li.querySelector('[data-action="delete"]').addEventListener("click", async () => {
-              try {
-                await originalDeleteRule(state.token, rule.id);
-                const setId = ruleSetSelect?.value;
-                if (setId) {
-                  const refreshed = await originalListRules(state.token, setId);
-                  renderRuleCards(refreshed || []);
-                }
-                flashMeta("瑙勫垯宸插垹闄?);
-              } catch (err) {
-                console.error(err);
-                flashMeta(getErrorMessage(err, "鍒犻櫎瑙勫垯澶辫触"));
-              }
-            });
-            return li;
-          },
-          "鏆傛棤瑙勫垯",
-        );
-      };
-
-      const initialSets = await originalListSetsWithGlobal(state.token);
-      renderRuleSetCards(initialSets || []);
-      if (typeof populateRuleSetSelect === "function") {
-        populateRuleSetSelect(initialSets || []);
-      }
-      if (ruleSetSelect && ruleSetSelect.value) {
-        const currentRules = await originalListRules(state.token, ruleSetSelect.value);
-        renderRuleCards(currentRules || []);
-      }
-
-      const createRuleSetBtn = $("create-rule-set");
-      if (createRuleSetBtn && !createRuleSetBtn.dataset.boundLocalized) {
-        createRuleSetBtn.dataset.boundLocalized = "1";
-        createRuleSetBtn.addEventListener("click", async () => {
-          const name = $("rule-set-name")?.value?.trim();
-          const desc = $("rule-set-desc")?.value?.trim() || "";
-          const scope = $("rule-set-global")?.checked ? "global" : "user";
-          if (!name) {
-            flashMeta("璇疯緭鍏ヨ鍒欓泦鍚嶇О");
-            return;
-          }
-          try {
-            await originalCreateSet(state.token, {
-              name,
-              description: desc,
-              enabled: true,
-              scope,
-            });
-            const refreshed = await originalListSetsWithGlobal(state.token);
-            renderRuleSetCards(refreshed || []);
-            if (typeof populateRuleSetSelect === "function") {
-              populateRuleSetSelect(refreshed || []);
-            }
-            flashMeta("瑙勫垯闆嗗凡鍒涘缓");
-          } catch (err) {
-            console.error(err);
-            flashMeta(getErrorMessage(err, "鍒涘缓瑙勫垯闆嗗け璐?));
-          }
-        });
-      }
-
-      if (ruleSetSelect && !ruleSetSelect.dataset.boundLocalized) {
-        ruleSetSelect.dataset.boundLocalized = "1";
-        ruleSetSelect.addEventListener("change", async () => {
-          if (!ruleSetSelect.value) {
-            renderRuleCards([]);
-            return;
-          }
-          try {
-            const rules = await originalListRules(state.token, ruleSetSelect.value);
-            renderRuleCards(rules || []);
-          } catch (err) {
-            console.error(err);
-            flashMeta(getErrorMessage(err, "鍔犺浇瑙勫垯澶辫触"));
-          }
-        });
-      }
-
-      const saveRuleBtn = $("save-rule");
-      if (saveRuleBtn && !saveRuleBtn.dataset.boundLocalized) {
-        saveRuleBtn.dataset.boundLocalized = "1";
-        saveRuleBtn.addEventListener("click", async () => {
-          const setId = ruleSetSelect?.value;
-          const name = $("rule-name")?.value?.trim();
-          if (!setId) {
-            flashMeta("璇峰厛閫夋嫨瑙勫垯闆?);
-            return;
-          }
-          if (!name) {
-            flashMeta("璇疯緭鍏ヨ鍒欏悕绉?);
-            return;
-          }
-          const payload = {
-            name,
-            enabled: Boolean($("rule-enabled")?.checked),
-            priority: toNumber($("rule-priority")?.value, 100),
-            event_type: $("rule-event-type")?.value || "motion",
-            dsl_json: currentDslValue(),
-            action: $("rule-action")?.value || "alert",
-            action_params: {},
-            cooldown_sec: toNumber($("rule-cooldown")?.value, 120),
-          };
-          try {
-            const editingRuleId = ruleEditing?.dataset.ruleId || "";
-            if (editingRuleId) {
-              await originalUpdateRule(state.token, editingRuleId, payload);
-              flashMeta("瑙勫垯宸叉洿鏂?);
-            } else {
-              await originalCreateRule(state.token, setId, payload);
-              flashMeta("瑙勫垯宸插垱寤?);
-            }
-            const rules = await originalListRules(state.token, setId);
-            renderRuleCards(rules || []);
-            if (ruleEditing) {
-              delete ruleEditing.dataset.ruleId;
-              ruleEditing.textContent = "鍒涘缓鏂拌鍒欙紝鎴栦粠宸︿晶閫夋嫨宸叉湁瑙勫垯缁х画缂栬緫銆?;
-            }
-          } catch (err) {
-            console.error(err);
-            flashMeta(getErrorMessage(err, "淇濆瓨瑙勫垯澶辫触"));
-          }
-        });
-      }
-
-      const dslValidateBtn = $("dsl-validate");
-      if (dslValidateBtn && !dslValidateBtn.dataset.boundLocalized) {
-        dslValidateBtn.dataset.boundLocalized = "1";
-        dslValidateBtn.addEventListener("click", async () => {
-          try {
-            const res = await originalValidateDsl(state.token, { dsl_json: currentDslValue() });
-            setDslStatus($("dsl-result"), res?.ok ? "鏍￠獙閫氳繃" : "鏍￠獙澶辫触", res?.ok ? "ok" : "error");
-          } catch (err) {
-            console.error(err);
-            setDslStatus($("dsl-result"), getErrorMessage(err, "鏍￠獙澶辫触"), "error");
-          }
-        });
-      }
-
-      const dslEvaluateBtn = $("dsl-evaluate");
-      if (dslEvaluateBtn && !dslEvaluateBtn.dataset.boundLocalized) {
-        dslEvaluateBtn.dataset.boundLocalized = "1";
-        dslEvaluateBtn.addEventListener("click", async () => {
-          const metrics = safeJsonParse($("dsl-metrics")?.value || "");
-          if (!metrics) {
-            setDslStatus($("dsl-result"), "璇锋彁渚涙湁鏁堢殑 metrics JSON", "warn");
-            return;
-          }
-          try {
-            const res = await originalEvaluateDsl(state.token, {
-              dsl_json: currentDslValue(),
-              metrics,
-            });
-            setDslStatus($("dsl-result"), res?.matched ? "璇勪及鍛戒腑" : "璇勪及鏈懡涓?, res?.matched ? "ok" : "warn");
-          } catch (err) {
-            console.error(err);
-            setDslStatus($("dsl-result"), getErrorMessage(err, "璇勪及澶辫触"), "error");
-          }
-        });
-      }
-    }
-  };
-}
-
-connectWebSocket = function connectWebSocket() {
-  let wsUrl = "";
-  try {
-    const apiRoot = new URL(API_ROOT);
-    const wsProtocol = apiRoot.protocol === "https:" ? "wss:" : "ws:";
-    wsUrl = `${wsProtocol}//${apiRoot.host}/ws/alerts`;
-  } catch (_err) {
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    wsUrl = `${protocol}://${location.hostname}:18000/ws/alerts`;
-  }
-
-  const ws = new WebSocket(wsUrl);
-  const throttleFactory = window.wsThrottle?.createThrottle || ((_, handler) => handler);
-  let pending = { orders: false, alerts: false, devices: false, reports: false };
-
-  const buildDeviceCardLocalized = (device) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card support-node-card";
-    li.dataset.id = device.id;
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(getDeviceSummary(device) || device.name)}</strong>
-          <span class="hint">Support Node</span>
-        </div>
-        <span class="chip audit-status-chip">${escapeHtml(device.status || "unknown")}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>绫诲瀷</span><strong>${escapeHtml(device.device_type || "-")}</strong></div>
-        <div class="meta"><span>鏇存柊</span><strong>${escapeHtml(formatDate(getDeviceTimestamp(device)))}</strong></div>
-        <div class="meta"><span>璁惧鐮?/span><strong>${escapeHtml(device.device_code || "-")}</strong></div>
-      </div>
-      <div class="btn-row audit-card-actions">
-        <button class="ghost" data-action="select">閫夋嫨璁惧</button>
-      </div>
-    `;
-    li.querySelector('[data-action="select"]').addEventListener("click", async () => {
-      await selectDevice(device);
-    });
-    return li;
-  };
-
-  const buildRuleMatchCardLocalized = (row) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card rule-match-card";
-    li.dataset.id = row.id != null ? String(row.id) : "";
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(row.rule_name || row.summary || row.event_type || "瑙勫垯")} / ${escapeHtml(row.event_type || "-")}</strong>
-          <span class="hint">Audit Trace</span>
-        </div>
-        <span class="chip audit-status-chip ${row.suppressed ? "is-warn" : "is-live"}">${row.suppressed ? "Suppressed" : "Live"}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>瑙勫垯闆?/span><strong>${escapeHtml(row.rule_set_name || row.rule_set_id || "-")}</strong></div>
-        <div class="meta"><span>璁㈠崟</span><strong>${escapeHtml(row.order_id || "-")}</strong></div>
-        <div class="meta"><span>浼氳瘽</span><strong>${escapeHtml(row.session_id || "-")}</strong></div>
-        <div class="meta"><span>鍛戒腑鏃堕棿</span><strong>${escapeHtml(formatDate(row.matched_at || row.updated_at))}</strong></div>
-      </div>
-      <pre class="code audit-card-code">${escapeHtml(JSON.stringify({ conditions: row.conditions, metrics: row.metrics || row.metrics_json, note: row.note }, null, 2))}</pre>
-    `;
-    return li;
-  };
-
-  const buildOrderCardLocalized = (order) => {
-    const li = document.createElement("li");
-    li.className = "card";
-    li.dataset.id = order.id;
-    li.innerHTML = `
-      <strong>${escapeHtml(order.provider)} / ${escapeHtml(order.status)}</strong>
-      <div class="meta">璁㈠崟 ID锛?{escapeHtml(order.id)}</div>
-      <div class="meta">${escapeHtml(formatPair(order.merchant_name || "-", getOrderSummary(order) || "-"))}</div>
-      <div class="meta">閫佽揪鏃堕棿锛?{escapeHtml(formatDate(getOrderTimestamp(order)))} / 棰勮鍙栭锛?{escapeHtml(formatDate(order.expected_pickup_by))}</div>
-      <div class="meta">鍏宠仈浼氳瘽锛?{escapeHtml(order.latest_session_id || "-")}</div>
-      <div class="btn-row">
-        <button class="ghost" data-action="deliver">妯℃嫙閫佽揪</button>
-        <button class="primary" data-action="arm">鍚姩鐩戞帶</button>
-        <button class="ghost" data-action="confirm">纭鍙栭</button>
-        <button class="ghost" data-action="timeline">鏌ョ湅鏃堕棿绾?/button>
-      </div>
-    `;
-    li.querySelector('[data-action="deliver"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/integrations/mock/delivered/${order.id}`, { method: "POST" });
-        flashMeta("妯℃嫙閫佽揪瀹屾垚");
-        await loadOrders();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta(getErrorMessage(err, "妯℃嫙閫佽揪澶辫触"));
-      }
-    });
-    li.querySelector('[data-action="arm"]').addEventListener("click", async () => {
-      try {
-        const res = await fetchJson(`/orders/${order.id}/arm`, { method: "POST" });
-        flashMeta(`鐩戞帶浼氳瘽宸插惎鍔細${res.session_id || "-"}`);
-        await loadOrders();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta(getErrorMessage(err, "鍚姩鐩戞帶澶辫触"));
-      }
-    });
-    li.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
-      try {
-        await fetchJson(`/orders/${order.id}/confirm-pickup`, { method: "POST" });
-        flashMeta("宸茬‘璁ゅ彇椁?);
-        await loadOrders();
-        await loadAlerts();
-        await loadReports();
-      } catch (err) {
-        console.error(err);
-        flashMeta(getErrorMessage(err, "纭鍙栭澶辫触"));
-      }
-    });
-    li.querySelector('[data-action="timeline"]').addEventListener("click", async () => {
-      try {
-        const timeline = await fetchJson(`/orders/${order.id}/timeline`);
-        const output = $("alert-detail-output");
-        if (output) {
-          output.textContent = JSON.stringify(timeline, null, 2);
-        }
-        flashMeta("璁㈠崟鏃堕棿绾垮凡鍔犺浇");
-      } catch (err) {
-        console.error(err);
-        flashMeta(getErrorMessage(err, "鍔犺浇鏃堕棿绾垮け璐?));
-      }
-    });
-    return li;
-  };
-
-  const buildAlertCardLocalized = (alert) => {
-    const li = document.createElement("li");
-    li.className = "card audit-card alert-event-card";
-    li.dataset.id = alert.id;
-    const activeAlertId = document.querySelector("#alert-detail .evidence-bay-panel")?.dataset.alertId || "";
-    if (String(alert.id || "") === activeAlertId) {
-      li.classList.add("is-selected");
-    }
-    li.innerHTML = `
-      <div class="audit-card-head">
-        <div class="audit-card-title">
-          <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level || "-")}</strong>
-          <span class="hint">Alert Unit</span>
-        </div>
-        <span class="chip audit-status-chip is-hot">${escapeHtml(alert.status || "-")}</span>
-      </div>
-      <div class="audit-card-meta-grid">
-        <div class="meta"><span>绛夌骇</span><strong>${escapeHtml(alert.level || "-")}</strong></div>
-        <div class="meta"><span>鏃堕棿</span><strong>${escapeHtml(formatDate(getAlertTimestamp(alert)))}</strong></div>
-        <div class="meta"><span>璁㈠崟</span><strong>${escapeHtml(alert.order_id || "-")}</strong></div>
-      </div>
-      <div class="btn-row audit-card-actions">
-        <button class="ghost" data-action="detail">璇︽儏</button>
-        <button class="ghost" data-action="ack">纭</button>
-        <button class="ghost" data-action="resolve">缁撴</button>
-        <button class="ghost" data-action="false">璇姤</button>
-        <button class="primary" data-action="evidence">鍙栬瘉</button>
-      </div>
-    `;
-    li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-      setSelectedAlertCard(alert.id);
-      await loadAlertDetail(alert.id);
-    });
-    li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "ack");
-    });
-    li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "resolve");
-    });
-    li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-      await runAlertAction(alert.id, "false_positive");
-    });
-    li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-      setSelectedAlertCard(alert.id);
-      await generateEvidence(alert.id);
-    });
-    return li;
-  };
-
-  const trimList = (listId, max) => {
-    if (!max || max <= 0) {
-      return;
-    }
-    const list = $(listId);
-    if (!list) {
-      return;
-    }
-    const items = Array.from(list.children);
-    const limiter = window.listLimit?.enforceListLimit || null;
-    const keep = limiter ? limiter(items, max) : items.slice(0, max);
-    keep.forEach((node) => {
-      if (node && node.parentElement !== list) {
-        list.appendChild(node);
-      }
-    });
-    const removed = items.slice(keep.length);
-    removed.forEach((node) => node.remove());
-    if (listId === "rule-matches-list" && window.ruleMatchIndex?.removeIndexForNodes) {
-      window.ruleMatchIndex.removeIndexForNodes(ruleMatchIndex, removed);
-    }
-  };
-
-  const mergeListItem = (listId, itemId, build) => {
-    const list = $(listId);
-    if (!list) {
-      return;
-    }
-    if (!itemId) {
-      pending.reports = true;
-      return;
-    }
-    const selector = `[data-id="${itemId}"]`;
-    const existing = list.querySelector(selector);
-    const node = build();
-    if (existing) {
-      existing.replaceWith(node);
-    } else {
-      list.prepend(node);
-    }
-    if (listId === "rule-matches-list") {
-      const id = node?.dataset?.id || null;
-      if (id) {
-        ruleMatchIndex.set(String(id), node);
-      }
-    }
-    if (listId === "orders-list") {
-      trimList("orders-list", 100);
-    } else if (listId === "alerts-list") {
-      trimList("alerts-list", 100);
-    } else if (listId === "rule-matches-list") {
-      trimList("rule-matches-list", 200);
-    }
-  };
-
-  const flushReports = throttleFactory(800, async () => {
-    if (document.hidden || !pending.reports) {
-      return;
-    }
-    pending.reports = false;
-    await loadReports();
-  });
-  const flushOrders = throttleFactory(200, async () => {
-    if (document.hidden || !pending.orders) {
-      return;
-    }
-    pending.orders = false;
-    await loadOrders();
-  });
-  const flushAlerts = throttleFactory(200, async () => {
-    if (document.hidden || !pending.alerts) {
-      return;
-    }
-    pending.alerts = false;
-    await loadAlerts();
-  });
-  const flushDevices = throttleFactory(500, async () => {
-    if (document.hidden || !pending.devices) {
-      return;
-    }
-    pending.devices = false;
-    await loadDevices();
-  });
-
-  ws.onopen = () => {
-    try {
-      ws.send(JSON.stringify({ subscribe: ["order", "alert", "device", "rule"] }));
-    } catch (err) {
-      console.warn("ws subscribe failed", err);
-    }
-  };
-
-  ws.onmessage = async (evt) => {
-    const raw = (evt.data || "").toString();
-    let envelope = null;
-    try {
-      envelope = JSON.parse(raw);
-    } catch (_err) {
-      envelope = null;
-    }
-    const eventType = envelope && typeof envelope.type === "string" ? envelope.type : raw;
-    const payloadData = envelope?.payload || null;
-    const entityType = payloadData?.entity_type || payloadData?.entityType || "";
-    const entity = payloadData?.entity || null;
-
-    if ((entityType === "order" || eventType.includes("order")) && (entity || payloadData?.order)) {
-      const order = entity || payloadData.order;
-      mergeListItem("orders-list", order.id, () => buildOrderCardLocalized(order));
-      pending.orders = true;
-      pending.reports = true;
-      flushOrders();
-      flushReports();
-      return;
-    }
-
-    if ((entityType === "alert" || eventType.includes("alert")) && (entity || payloadData?.alert)) {
-      const alert = entity || payloadData.alert;
-      mergeListItem("alerts-list", alert.id, () => buildAlertCardLocalized(alert));
-      pending.alerts = true;
-      pending.reports = true;
-      flushAlerts();
-      flushReports();
-      return;
-    }
-
-    if ((entityType === "device" || eventType.includes("device")) && (entity || payloadData?.device)) {
-      const device = entity || payloadData.device;
-      mergeListItem("devices-list", device.id, () => buildDeviceCardLocalized(device));
-      pending.devices = true;
-      pending.reports = true;
-      flushDevices();
-      flushReports();
-      return;
-    }
-
-    if ((entityType === "rule_match" || eventType.includes("rule")) && (entity || payloadData?.match)) {
-      const match = entity || payloadData.match;
-      const filters = getRuleMatchFilters(state.ruleMatches.page || 1);
-      const signature = window.ruleMatchIndex?.buildFilterSignature
-        ? window.ruleMatchIndex.buildFilterSignature(filters)
-        : "";
-      const acceptSignature = window.ruleMatchIndex?.shouldAcceptIncremental
-        ? window.ruleMatchIndex.shouldAcceptIncremental(ruleMatchSignature, signature)
-        : true;
-
-      if (!acceptSignature || !match.id) {
-        ruleMatchSignature = signature;
-        await loadRuleMatches(1);
-        return;
-      }
-
-      ruleMatchSignature = signature;
-      const canInsert = window.wsLogic?.shouldInsertRuleMatch
-        ? window.wsLogic.shouldInsertRuleMatch(match, filters, new Date())
-        : true;
-
-      if (canInsert) {
-        mergeListItem("rule-matches-list", match.id, () => buildRuleMatchCardLocalized(match));
-        state.ruleMatches.hasMore = true;
-        updateRuleMatchPager();
-      }
-
-      if (match.matched_at && trendCache && window.trendCache?.applyRuleMatchIncrement) {
-        const applied = window.trendCache.applyRuleMatchIncrement(trendCache, match.matched_at);
-        if (applied) {
-          renderTrendBars($("trend-rule-matches"), trendCache.rule_matches || [], "rules");
-          renderTrendMeta($("trend-rules-meta"), trendCache.rule_matches || []);
-        } else {
-          await loadTrends();
-        }
-      } else {
-        await loadTrends();
-      }
-      return;
-    }
-
-    if (eventType.includes("device")) {
-      pending.devices = true;
-      pending.reports = true;
-      flushDevices();
-      flushReports();
-    } else if (eventType.includes("order")) {
-      pending.orders = true;
-      pending.reports = true;
-      flushOrders();
-      flushReports();
-    } else {
-      pending.alerts = true;
-      pending.reports = true;
-      flushAlerts();
-      flushReports();
-    }
-  };
-
-  ws.onclose = () => {
-    setTimeout(connectWebSocket, 5000);
-  };
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      flushOrders();
-      flushAlerts();
-      flushDevices();
-      flushReports();
-    }
-  });
-};
-
-renderAlerts = function renderAlerts(alerts) {
-  const listEl = $("alerts-list");
-  const activeAlertId = document.querySelector("#alert-detail .evidence-bay-panel")?.dataset.alertId || "";
-  renderList(
-    listEl,
-    alerts,
-    (alert) => {
-      const li = document.createElement("li");
-      li.className = "card audit-card alert-event-card";
-      li.dataset.id = alert.id;
-      if (String(alert.id || "") === activeAlertId) {
-        li.classList.add("is-selected");
-      }
-      li.innerHTML = `
-        <div class="audit-card-head">
-          <div class="audit-card-title">
-            <strong>${escapeHtml(getAlertSummary(alert) || alert.alert_type)} / ${escapeHtml(alert.level || "-")}</strong>
-            <span class="hint">Alert Unit</span>
-          </div>
-          <span class="chip audit-status-chip is-hot">${escapeHtml(alert.status || "-")}</span>
-        </div>
-        <div class="audit-card-meta-grid">
-          <div class="meta"><span>缁涘楠?/span><strong>${escapeHtml(alert.level || "-")}</strong></div>
-          <div class="meta"><span>閺冨爼妫?/span><strong>${escapeHtml(formatDate(getAlertTimestamp(alert)))}</strong></div>
-          <div class="meta"><span>鐠併垹宕?/span><strong>${escapeHtml(alert.order_id || "-")}</strong></div>
-        </div>
-        <div class="btn-row audit-card-actions">
-          <button class="ghost" data-action="detail">鐠囷附鍎?/button>
-          <button class="ghost" data-action="ack">绾喛顓?/button>
-          <button class="ghost" data-action="resolve">缂佹挻顢?/button>
-          <button class="ghost" data-action="false">鐠囶垱濮?/button>
-          <button class="primary" data-action="evidence">閸欐牞鐦?/button>
-        </div>
-      `;
-      li.querySelector('[data-action="detail"]').addEventListener("click", async () => {
-        setSelectedAlertCard(alert.id);
-        await loadAlertDetail(alert.id);
-      });
-      li.querySelector('[data-action="ack"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "ack");
-      });
-      li.querySelector('[data-action="resolve"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "resolve");
-      });
-      li.querySelector('[data-action="false"]').addEventListener("click", async () => {
-        await runAlertAction(alert.id, "false_positive");
-      });
-      li.querySelector('[data-action="evidence"]').addEventListener("click", async () => {
-        setSelectedAlertCard(alert.id);
-        await generateEvidence(alert.id);
-      });
-      return li;
-    },
-    "閺嗗倹妫ら崨濠咁劅",
-  );
-};
-
-loadAlertDetail = async function loadAlertDetail(alertId) {
-  setEvidenceBayState({ loaded: false, evidence: false });
-  try {
-    const detail = await fetchJson(`/alerts/${alertId}`);
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(detail, null, 2);
-    }
-    const mediaList = $("alert-media");
-    if (mediaList) {
-      mediaList.innerHTML = "";
-      if (!detail.media || detail.media.length === 0) {
-        mediaList.innerHTML = '<div class="meta">閺嗗倹妫ょ拠浣瑰祦婵帊缍?/div>';
-      } else {
-        detail.media.forEach((media) => {
-          const img = document.createElement("img");
-          img.src = `${API_ROOT}${media.download_url}`;
-          img.alt = media.type || "media";
-          mediaList.appendChild(img);
-        });
-      }
-    }
-    setEvidenceBayState({ loaded: true, evidence: false });
-    flashMeta("???????");
-  } catch (err) {
-    console.error(err);
-    setEvidenceBayState({ loaded: false, evidence: false });
-    flashMeta(getErrorMessage(err, "????????"));
-  }
-};
-
-generateEvidence = async function generateEvidence(alertId) {
-  setEvidenceBayState({ loaded: true, evidence: false });
-  try {
-    const res = await fetchJson(`/evidence/${alertId}/generate`, { method: "POST" });
-    const output = $("alert-detail-output");
-    if (output) {
-      output.textContent = JSON.stringify(res, null, 2);
-    }
-    setEvidenceBayState({ loaded: true, evidence: true });
-    flashMeta("???????");
-  } catch (err) {
-    console.error(err);
-    setEvidenceBayState({ loaded: true, evidence: false });
-    flashMeta(getErrorMessage(err, "???????"));
-  }
-};
-*/

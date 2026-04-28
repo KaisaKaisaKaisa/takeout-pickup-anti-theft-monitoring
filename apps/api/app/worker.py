@@ -1,10 +1,11 @@
 import asyncio
 import logging
+from app.core.logging_config import configure_logging
 from app.services.timeout_checker import run_timeout_loop
 from app.services.cleanup import run_cleanup_loop
 from app.services.device_offline_checker import run_device_offline_loop
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger("takeout_guard.worker")
 
 async def main() -> None:

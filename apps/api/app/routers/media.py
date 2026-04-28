@@ -1,14 +1,26 @@
 import uuid
+import json
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.entities import MediaAsset, AlertIncident, MonitoringSession, EdgeDevice, Order
 from app.schemas.schemas import MediaOut
-from app.services.storage_service import write_bytes, storage_path
+from app.services.storage_service import (
+    StorageUnavailable,
+    object_download_url,
+    sha256_hex,
+    storage_path,
+    write_object,
+)
+from app.services.device_security import authenticate_device_request
+try:
+    from app.schemas.schemas import MediaMetadataOut
+except ImportError:
+    MediaMetadataOut = dict
 
 router = APIRouter()
 
@@ -58,18 +70,22 @@ async def upload_media(
     session_id: str | None = Form(None),
     incident_id: str | None = Form(None),
     x_device_code: str | None = Header(default=None),
+    x_device_timestamp: str | None = Header(default=None),
+    x_device_nonce: str | None = Header(default=None),
+    x_device_signature: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    if not x_device_code:
-        raise HTTPException(status_code=401, detail="Missing device code")
-    dev = (
-        await db.execute(select(EdgeDevice).where(EdgeDevice.device_code == x_device_code))
-    ).scalar_one_or_none()
-    if not dev:
-        raise HTTPException(status_code=403, detail="Invalid device code")
+    x_device_code = x_device_code if isinstance(x_device_code, str) and x_device_code else None
+    x_device_timestamp = x_device_timestamp if isinstance(x_device_timestamp, str) and x_device_timestamp else None
+    x_device_nonce = x_device_nonce if isinstance(x_device_nonce, str) and x_device_nonce else None
+    x_device_signature = x_device_signature if isinstance(x_device_signature, str) and x_device_signature else None
     session_uuid = uuid.UUID(session_id) if session_id else None
     incident_uuid = uuid.UUID(incident_id) if incident_id else None
     order_id = None
+    session = None
+
+    if not session_uuid and not incident_uuid and not x_device_code:
+        raise HTTPException(status_code=401, detail="Missing device identity")
 
     if incident_uuid:
         incident = (
@@ -78,20 +94,55 @@ async def upload_media(
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
         order_id = incident.order_id
+        session_uuid = incident.session_id
 
-    if session_uuid and not order_id:
+    if session_uuid:
         session = (
             await db.execute(select(MonitoringSession).where(MonitoringSession.id == session_uuid))
         ).scalar_one_or_none()
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        if session.edge_device_id != dev.id:
-            raise HTTPException(status_code=403, detail="Forbidden")
-        order_id = session.order_id
+        order_id = order_id or session.order_id
+        dev = (
+            await db.execute(select(EdgeDevice).where(EdgeDevice.id == session.edge_device_id))
+        ).scalar_one_or_none()
+        if not dev:
+            raise HTTPException(status_code=403, detail="Invalid device")
+    else:
+        dev = (
+            await db.execute(select(EdgeDevice).where(EdgeDevice.device_code == x_device_code))
+        ).scalar_one_or_none()
+        if not dev:
+            raise HTTPException(status_code=403, detail="Invalid device code")
 
     raw = await file.read()
     object_key = f"media/{uuid.uuid4().hex}-{file.filename}"
-    write_bytes(object_key, raw)
+    digest = sha256_hex(raw)
+    auth_body = json.dumps(
+        {
+            "content_type": file.content_type,
+            "filename": file.filename,
+            "incident_id": str(incident_uuid) if incident_uuid else None,
+            "media_type": media_type,
+            "session_id": str(session_uuid) if session_uuid else None,
+            "sha256": digest,
+            "size_bytes": len(raw),
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    await authenticate_device_request(
+        dev,
+        body=auth_body,
+        x_device_code=x_device_code,
+        x_device_timestamp=x_device_timestamp,
+        x_device_nonce=x_device_nonce,
+        x_device_signature=x_device_signature,
+    )
+    try:
+        stored = write_object(object_key, raw, content_type=file.content_type)
+    except StorageUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
     media = MediaAsset(
@@ -99,19 +150,27 @@ async def upload_media(
         session_id=session_uuid,
         incident_id=incident_uuid,
         media_type=media_type,
-        storage_provider="local",
-        bucket_name="local",
-        object_key=object_key,
+        storage_provider=stored["storage_provider"],
+        bucket_name=stored["bucket_name"],
+        object_key=stored["object_key"],
         content_type=file.content_type,
-        size_bytes=len(raw),
+        size_bytes=stored["size_bytes"],
+        sha256=stored["sha256"],
         retention_class="24h",
         expires_at=expires_at,
     )
     db.add(media)
     await db.commit()
-    return {"media_id": str(media.id), "object_key": object_key}
+    return {
+        "media_id": str(media.id),
+        "storage_provider": media.storage_provider,
+        "bucket_name": media.bucket_name,
+        "object_key": media.object_key,
+        "sha256": media.sha256,
+    }
 
-@router.get("/{media_id}")
+
+@router.get("/{media_id}", response_model=MediaMetadataOut)
 async def get_media(
     media_id: str,
     db: AsyncSession = Depends(get_db),
@@ -129,12 +188,31 @@ async def get_media(
         ).scalar_one_or_none()
         if not order or order.user_id != user.id:
             raise HTTPException(status_code=403, detail="Forbidden")
-    path = storage_path(media.object_key)
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    return {"object_key": media.object_key, "path": str(path)}
+    if media.storage_provider == "local":
+        path = storage_path(media.object_key)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        return {"object_key": media.object_key, "path": str(path), "sha256": media.sha256}
+    try:
+        url = object_download_url(media.bucket_name, media.object_key, media.content_type)
+    except StorageUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "object_key": media.object_key,
+        "storage_provider": media.storage_provider,
+        "bucket_name": media.bucket_name,
+        "download_url": url,
+        "sha256": media.sha256,
+    }
 
-@router.get("/{media_id}/download")
+@router.get(
+    "/{media_id}/download",
+    response_class=Response,
+    responses={
+        200: {"content": {"application/octet-stream": {}}, "description": "Local media file"},
+        302: {"description": "Redirect to a presigned object-store URL"},
+    },
+)
 async def download_media(
     media_id: str,
     db: AsyncSession = Depends(get_db),
@@ -152,11 +230,19 @@ async def download_media(
         ).scalar_one_or_none()
         if not order or order.user_id != user.id:
             raise HTTPException(status_code=403, detail="Forbidden")
-    path = storage_path(media.object_key)
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(
-        path,
-        media_type=media.content_type or "application/octet-stream",
-        filename=path.name,
-    )
+    if media.storage_provider == "local":
+        path = storage_path(media.object_key)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(
+            path,
+            media_type=media.content_type or "application/octet-stream",
+            filename=path.name,
+        )
+    try:
+        return RedirectResponse(
+            object_download_url(media.bucket_name, media.object_key, media.content_type),
+            status_code=302,
+        )
+    except StorageUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

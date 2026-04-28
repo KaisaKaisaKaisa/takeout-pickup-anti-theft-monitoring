@@ -1,4 +1,5 @@
 import importlib.util
+import importlib
 import os
 import sys
 import types
@@ -36,7 +37,15 @@ sys.path.append(base_dir)
 MODULE_PATH = os.path.join(base_dir, "app", "services", "webhook_security.py")
 
 
+def load_cache_module():
+    for name in ["app.core.cache", "app.core.config", "app.core", "app"]:
+        sys.modules.pop(name, None)
+    return importlib.import_module("app.core.cache")
+
+
 def load_module():
+    load_cache_module()
+    sys.modules.pop("app.services.webhook_security", None)
     spec = importlib.util.spec_from_file_location("webhook_security", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

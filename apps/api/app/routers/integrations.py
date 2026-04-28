@@ -17,8 +17,8 @@ from app.services.ws_payloads import build_event_payload, build_order_payload
 from app.services.webhook_security import (
     normalize_status,
     build_idempotency_key,
-    check_and_store_nonce,
-    check_and_store_idempotency,
+    acheck_and_store_nonce,
+    acheck_and_store_idempotency,
     get_provider_secret,
 )
 
@@ -104,7 +104,7 @@ async def provider_order_status(
     payload["status"] = status
 
     if x_provider_nonce:
-        ok = check_and_store_nonce(provider, x_provider_nonce, settings.provider_webhook_ttl_sec)
+        ok = await acheck_and_store_nonce(provider, x_provider_nonce, settings.provider_webhook_ttl_sec)
         if not ok:
             raise HTTPException(status_code=409, detail="Nonce replay")
 
@@ -114,7 +114,7 @@ async def provider_order_status(
         event_id=x_provider_event_id,
         raw_body=body,
     )
-    if not check_and_store_idempotency(idem_key, settings.provider_webhook_ttl_sec):
+    if not await acheck_and_store_idempotency(idem_key, settings.provider_webhook_ttl_sec):
         return {"ok": True, "duplicate": True}
 
     order = None

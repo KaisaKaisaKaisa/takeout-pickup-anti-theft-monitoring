@@ -1,5 +1,15 @@
 from datetime import datetime
+from typing import Any
 from pydantic import BaseModel, Field
+
+class OkOut(BaseModel):
+    ok: bool = True
+
+class ErrorOut(BaseModel):
+    ok: bool = False
+    detail: Any | None = None
+    error: str | None = None
+    request_id: str | None = None
 
 class OrderCreate(BaseModel):
     provider: str = "manual"
@@ -20,6 +30,10 @@ class OrderOut(BaseModel):
 
 class OrderListOut(BaseModel):
     orders: list[OrderOut]
+
+class OrderArmOut(BaseModel):
+    session_id: str
+    deduped: bool = False
 
 class EdgeEventIn(BaseModel):
     eventType: str
@@ -64,6 +78,22 @@ class AlertOut(BaseModel):
 class AlertListOut(BaseModel):
     alerts: list[AlertOut]
 
+class AlertMediaOut(BaseModel):
+    id: str
+    type: str
+    size: int
+    download_url: str
+
+class AlertDetailOut(BaseModel):
+    id: str
+    order_id: str
+    alert_type: str
+    level: str
+    status: str
+    summary: str | None = None
+    triggered_at: datetime
+    media: list[AlertMediaOut] = Field(default_factory=list)
+
 class MediaOut(BaseModel):
     id: str
     order_id: str | None = None
@@ -73,6 +103,17 @@ class MediaOut(BaseModel):
     size_bytes: int
     content_type: str | None = None
     created_at: datetime
+    download_url: str
+
+class MediaMetadataOut(BaseModel):
+    object_key: str
+    path: str | None = None
+    storage_provider: str | None = None
+    bucket_name: str | None = None
+    download_url: str | None = None
+    sha256: str | None = None
+
+class MediaDownloadUrlOut(BaseModel):
     download_url: str
 
 class RuleSetCreate(BaseModel):
@@ -142,6 +183,28 @@ class DeviceOut(BaseModel):
     status: str
     device_code: str | None = None
 
+class DeviceListOut(BaseModel):
+    devices: list[DeviceOut]
+
+class DeviceDetailOut(BaseModel):
+    id: str
+    name: str
+    device_type: str
+    status: str
+    config: dict[str, Any] = Field(default_factory=dict)
+    raw_config: dict[str, Any] = Field(default_factory=dict)
+    last_seen_at: datetime | None = None
+
+class DeviceConfigOut(BaseModel):
+    ok: bool = True
+    config: dict[str, Any] = Field(default_factory=dict)
+    raw_config: dict[str, Any] = Field(default_factory=dict)
+
+class DeviceHealthOut(BaseModel):
+    last_seen_at: datetime | None = None
+    status: str
+    heartbeat: dict[str, Any] = Field(default_factory=dict)
+
 class PushSubscriptionIn(BaseModel):
     platform: str
     endpoint: str
@@ -180,3 +243,38 @@ class PickupCodeOut(BaseModel):
 
 class VerifyPickupCodeIn(BaseModel):
     code: str
+
+class GateVerifyIn(BaseModel):
+    code: str
+    gate_name: str | None = None
+
+class GateVerifyOut(BaseModel):
+    ok: bool = True
+    order_id: str
+    order_status: str
+    merchant_name: str | None = None
+    item_summary: str | None = None
+    confirmation_id: str
+    gate_name: str | None = None
+    verified_at: datetime
+
+class GateVerificationOut(BaseModel):
+    order_id: str
+    merchant_name: str | None = None
+    item_summary: str | None = None
+    confirm_method: str
+    gate_name: str | None = None
+    confirmed_at: datetime
+
+class GateVerificationListOut(BaseModel):
+    verifications: list[GateVerificationOut]
+
+class EvidenceGenerateOut(BaseModel):
+    status: str
+    bundle_id: str
+
+class EvidenceOut(BaseModel):
+    id: str
+    status: str
+    zip_media_id: str | None = None
+    generated_at: datetime | None = None

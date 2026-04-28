@@ -23,6 +23,7 @@
 
 
   <body data-theme="aqua" data-motion="normal" data-grid="normal">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
 
 
     <div class="ambient-lines" aria-hidden="true">
@@ -90,7 +91,7 @@
               <span>外卖防盗监控</span>
 
 
-              <small>科技艺术 · 高端守护</small>
+              <small>边缘智能 · 值守中枢</small>
 
 
             </div>
@@ -105,7 +106,7 @@
             <span class="brand-signal-dot"></span>
 
 
-            <span>品牌中枢在线</span>
+            <span>值守链路在线</span>
 
 
           </div>
@@ -165,10 +166,10 @@
 
 
 
-      <main>
+      <main id="main-content">
 
 
-        <section class="hero" id="overview" data-reveal>
+        <section class="hero guard-console" id="overview" data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -185,10 +186,10 @@
             <div class="hero-status">
 
 
-              <span class="eyebrow">智能守护</span>
+              <span class="eyebrow">当前防护</span>
 
 
-              <span class="hero-badge">品牌级安全中枢</span>
+              <span class="hero-badge">布防中 · 边缘节点同步</span>
 
 
             </div>
@@ -197,15 +198,15 @@
             <div class="hero-title-group">
               <div class="hero-lead">
                 <span class="hero-lead-line"></span>
-                <span>全链路监控叙事</span>
+                <span>Edge sensing guard console</span>
               </div>
 
 
-              <h1>以科技艺术构建外卖取餐防盗的全链路监控</h1>
+              <h1>外卖取餐防盗值守中枢</h1>
 
 
               <p>
-                融合视觉感知、重量监测与订单回调，实时识别异常取餐，自动留存证据并推送告警。面向校园、公寓楼与集中配餐点的高端防护平台。
+                订单送达后自动进入布防，摄像头、重量传感和规则引擎共同判断异常取餐；告警、证据包、设备心跳和报表在同一工作台内闭环处理。
               </p>
 
 
@@ -215,16 +216,16 @@
             <div class="hero-actions">
 
 
-              <button class="primary" id="hero-connect-btn" type="button">立即接入</button>
+              <button class="primary" id="hero-connect-btn" type="button">导入订单</button>
 
 
-              <button class="ghost" id="hero-demo-btn" type="button">演示模式</button>
+              <button class="ghost" id="hero-demo-btn" type="button">查看最新告警</button>
 
 
             </div>
 
 
-            <div class="hero-meta">系统运行状态：守护中 · 预警响应 180ms</div>
+            <div class="hero-meta" role="status" aria-live="polite">系统运行状态：布防中 · 预警响应 180ms · 证据链待命</div>
 
 
             <div class="hero-proof hero-proof-rail" data-proof-rail="live">
@@ -233,13 +234,13 @@
               <div class="metric">
 
 
-                <span class="metric-label">活跃监控</span>
+                <span class="metric-label">活跃订单</span>
 
 
                 <strong id="hero-sessions">0</strong>
 
 
-                <span class="metric-note">多点位联防</span>
+                <span class="metric-note">最新监控会话</span>
 
 
               </div>
@@ -248,13 +249,13 @@
               <div class="metric">
 
 
-                <span class="metric-label">今日告警</span>
+                <span class="metric-label">最新告警</span>
 
 
                 <strong id="hero-alerts">0</strong>
 
 
-                <span class="metric-note">异常即时推送</span>
+                <span class="metric-note">待确认事件</span>
 
 
               </div>
@@ -269,7 +270,7 @@
                 <strong id="hero-devices">0</strong>
 
 
-                <span class="metric-note">边缘联动同步</span>
+                <span class="metric-note">离线节点自动标记</span>
 
 
               </div>
@@ -281,7 +282,7 @@
           </div>
           <div class="hero-scroll-cue" aria-hidden="true">
             <span class="hero-scroll-line"></span>
-            <span class="hero-scroll-text">Scroll to Command Deck</span>
+            <span class="hero-scroll-text">进入运维工作台</span>
           </div>
           </div>
 
@@ -292,13 +293,13 @@
           <div class="hero-visual hero-visual-shell">
 
 
-            <div class="signal-card">
+            <div class="signal-card radar-stage">
 
 
               <div class="signal-stage">
 
 
-                <span class="signal-stage-label">实时态势视窗</span>
+                <span class="signal-stage-label">边缘感知雷达</span>
 
 
                 <span class="signal-stage-meta">订单、设备、告警统一映射</span>
@@ -310,7 +311,7 @@
               <div class="signal-head">
 
 
-                <span>实时波形</span>
+                <span>传感器事件流</span>
 
 
                 <span class="pill">在线</span>
@@ -319,19 +320,54 @@
               </div>
 
 
-              <svg class="signal-svg" viewBox="0 0 360 220" role="img" aria-label="Monitoring waveform">
+              <div class="radar-scope" aria-hidden="true">
+                <span class="radar-ring ring-one"></span>
+                <span class="radar-ring ring-two"></span>
+                <span class="radar-ring ring-three"></span>
+                <span class="radar-sweep"></span>
+                <span class="radar-dot camera"></span>
+                <span class="radar-dot weight"></span>
+                <span class="radar-dot alert"></span>
+              </div>
+
+
+              <div class="operator-queue" aria-label="Live guard queue">
+                <div class="queue-item">
+                  <span>当前防护</span>
+                  <strong>宿舍 A3 取餐架</strong>
+                  <small class="safe">armed</small>
+                </div>
+                <div class="queue-item">
+                  <span>事件流</span>
+                  <strong>重量 -318g · 动作 0.74</strong>
+                  <small class="evidence">evidence ready</small>
+                </div>
+                <div class="queue-item">
+                  <span>规则命中</span>
+                  <strong>weight_drop + object_missing</strong>
+                  <small class="danger">review</small>
+                </div>
+                <div class="queue-item">
+                  <span>设备心跳</span>
+                  <strong>3 在线 · 1 离线</strong>
+                  <small>sync 12s</small>
+                </div>
+              </div>
+
+
+              <svg class="signal-svg compact-waveform" viewBox="0 0 360 110" role="img" aria-label="Monitoring waveform">
 
 
                 <path class="trace" d="M20 150 C60 90 100 60 140 90 C170 110 200 120 240 70 C270 35 310 50 340 100" />
 
 
-                <path class="trace delay" d="M20 180 C80 120 120 140 160 160 C200 185 260 170 340 140" />
+                <path class="trace delay" d="M20 88 C80 58 120 70 160 82 C200 96 260 86 340 70" />
 
 
-                <circle class="pulse" cx="120" cy="88" r="10" />
+                <circle class="pulse" cx="120" cy="48" r="10" />
 
 
-                <circle class="pulse delay" cx="260" cy="78" r="12" />
+                <circle class="pulse delay" cx="260" cy="42" r="12" />
 
 
               </svg>
@@ -357,7 +393,7 @@
               <div class="metric-grid-line"></div>
 
 
-              <div class="metric-grid-note">主视窗负责品牌记忆，证明带负责可信支撑。</div>
+              <div class="metric-grid-note">雷达视窗聚焦实时布防、异常取餐、规则命中与证据状态。</div>
 
 
             </div>
@@ -372,7 +408,7 @@
 
 
 
-        <section class="panel style-console" id="console" data-reveal>
+        <section class="panel style-console workspace-page" id="console" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -383,15 +419,15 @@
 
 
           <div class="section-role section-role-command" aria-hidden="true">
-            <span>Command Deck</span>
-            <span>Theme / Motion / Grid</span>
+            <span>Guard Command</span>
+            <span>Readiness / Display / Response</span>
           </div>
 
 
           <div class="panel-head">
 
 
-            <h2>视觉控制台</h2>
+            <h2>值守控制台</h2>
 
 
             <div class="panel-actions">
@@ -424,7 +460,20 @@
           <div class="console-body">
 
 
-            <span class="hint">切换主题、光效与动效密度，实时调整赛博氛围。</span>
+            <span class="hint">值班员在这里确认防护状态、设备同步、告警响应和显示密度。</span>
+
+            <div class="workspace-masthead">
+              <div>
+                <span class="board-kicker">live desk</span>
+                <strong>当前班次：订单布防、设备心跳、告警矩阵持续在线</strong>
+                <p>控制台不再是纯视觉开关；主题、动效和网格只服务于长时间值守时的信息可读性。</p>
+              </div>
+              <div class="workspace-status-grid">
+                <span><b>armed</b> 默认布防</span>
+                <span><b>180ms</b> 告警响应</span>
+                <span><b>12s</b> 心跳同步</span>
+              </div>
+            </div>
 
 
             <div class="demo-bar" aria-hidden="true">
@@ -448,7 +497,7 @@
               <div class="console-card">
 
 
-                <h3>主色光谱</h3>
+                <h3>值守配色</h3>
 
 
                 <div class="swatch-row">
@@ -469,7 +518,7 @@
                 </div>
 
 
-                <div class="meta">默认高端青蓝，覆盖冷暖赛博光谱。</div>
+                <div class="meta">默认使用传感青与证据琥珀，避免干扰告警红和安全绿。</div>
 
 
               </div>
@@ -478,7 +527,7 @@
               <div class="console-card">
 
 
-                <h3>动效密度</h3>
+                <h3>事件动效密度</h3>
 
 
                 <div class="toggle-row">
@@ -496,7 +545,7 @@
                 </div>
 
 
-                <div class="meta">影响波形与路径描边密度。</div>
+                <div class="meta">影响传感波形、告警扫描和长时间值守的视觉负担。</div>
 
 
               </div>
@@ -505,7 +554,7 @@
               <div class="console-card">
 
 
-                <h3>网格强度</h3>
+                <h3>信息网格强度</h3>
 
 
                 <div class="toggle-row">
@@ -523,7 +572,7 @@
                 </div>
 
 
-                <div class="meta">调整背景能量纹理与层次。</div>
+                <div class="meta">调整背景网格密度，让订单、设备和规则列表更容易扫描。</div>
 
 
               </div>
@@ -541,7 +590,7 @@
 
 
 
-        <section class="panel" id="mission" data-reveal>
+        <section class="panel workspace-page" id="mission" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -551,17 +600,17 @@
           </div>
 
 
-          <div class="showcase-suite">
+          <div class="showcase-suite workspace-suite">
           <div class="section-role section-role-showcase" aria-hidden="true">
-            <span>Showcase Layer</span>
-            <span>Proof / Scenario / Trust</span>
+            <span>Incident Review</span>
+            <span>Evidence / Scenario / Decision</span>
           </div>
 
 
           <div class="panel-head">
 
 
-            <h2>案例展示</h2>
+            <h2>事件复盘</h2>
 
 
             <div class="panel-actions">
@@ -575,6 +624,19 @@
 
           </div>
 
+
+          <div class="workspace-masthead incident-review-board">
+            <div>
+              <span class="board-kicker">case console</span>
+              <strong>把真实场景拆成告警来源、证据状态和处置动作</strong>
+              <p>每个案例都按“送达布防、传感触发、规则命中、证据归档”复盘，便于值班员判断是否需要调整阈值或升级处理。</p>
+            </div>
+            <div class="workspace-status-grid">
+              <span><b>3</b> 场景复盘</span>
+              <span><b>47.2%</b> 平均响应缩短</span>
+              <span><b>61%</b> 误报下降</span>
+            </div>
+          </div>
 
           <div class="filter-bar" data-target="#case-grid" data-filter-bar="cases">
 
@@ -606,22 +668,20 @@
             <article class="case-card" data-tags="campus night">
 
 
-              <div class="case-tag">校园 · 深夜配餐</div>
+              <div class="case-tag">校园 · 深夜配餐 · review</div>
 
 
               <h3>智能取餐区联防</h3>
 
 
-              <p>多点位摄像头 + 重量传感联合判断异常取餐，告警时间缩短 43%。</p>
+              <p>重量骤降与 ROI 遮挡同时出现，规则引擎将普通取餐降噪、异常取餐进入复核队列。</p>
 
 
               <div class="case-meta">
 
 
                 <span>6 栋公寓</span>
-
-
-                <span>24/7 监控</span>
+                <span>43% 响应缩短</span>
 
 
               </div>
@@ -633,13 +693,13 @@
             <article class="case-card" data-tags="residence whitelist">
 
 
-              <div class="case-tag">公寓 · 多人共享</div>
+              <div class="case-tag">公寓 · 多人共享 · whitelist</div>
 
 
               <h3>白名单柔性防护</h3>
 
 
-              <p>室友授权 + 动态取餐码，减少误报 61%，提升安全与体验平衡。</p>
+              <p>白名单和动态取餐码联动，授权取餐自动闭环，异常取餐继续保留证据片段。</p>
 
 
               <div class="case-meta">
@@ -660,13 +720,13 @@
             <article class="case-card" data-tags="enterprise evidence">
 
 
-              <div class="case-tag">企业 · 集中配餐</div>
+              <div class="case-tag">企业 · 集中配餐 · evidence</div>
 
 
               <h3>一键取证闭环</h3>
 
 
-              <p>自动剪辑证据片段并上传云端，支持法务留档与责任追溯。</p>
+              <p>集中配送点按订单批次归档，告警处理、录像片段和审计记录形成同一证据包。</p>
 
 
               <div class="case-meta">
@@ -763,7 +823,7 @@
 
 
 
-        <section class="panel" id="gallery" data-reveal>
+        <section class="panel workspace-page" id="gallery" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -773,17 +833,17 @@
           </div>
 
 
-          <div class="showcase-suite">
+          <div class="showcase-suite workspace-suite">
           <div class="section-role section-role-showcase" aria-hidden="true">
-            <span>Template Gallery</span>
-            <span>Product Capabilities</span>
+            <span>Deployment Templates</span>
+            <span>Topology / Rules / Runbook</span>
           </div>
 
 
           <div class="panel-head">
 
 
-            <h2>场景模板</h2>
+            <h2>部署模板</h2>
 
 
             <div class="panel-actions">
@@ -797,6 +857,19 @@
 
           </div>
 
+
+          <div class="workspace-masthead template-deploy-board">
+            <div>
+              <span class="board-kicker">deployment kit</span>
+              <strong>选择场景后直接进入订单导入、设备阈值和规则集配置</strong>
+              <p>模板不是展示卡片，而是值守前的部署预案：覆盖点位拓扑、传感器组合、默认规则和处置动作。</p>
+            </div>
+            <div class="workspace-status-grid">
+              <span><b>camera</b> ROI 预设</span>
+              <span><b>weight</b> 阈值建议</span>
+              <span><b>rule</b> 告警策略</span>
+            </div>
+          </div>
 
           <div class="filter-bar" data-target="#template-grid" data-filter-bar="templates">
 
@@ -843,7 +916,7 @@
                 <h3>智能货架联防</h3>
 
 
-                <p>针对小型外卖柜的轻量部署模板。</p>
+                <p>单柜、单摄像头、轻量重量传感，适合低订单量门厅取餐点。</p>
 
 
               </div>
@@ -879,7 +952,7 @@
                 <h3>宿舍集群监控</h3>
 
 
-                <p>多点位摄像头与重量传感联合策略。</p>
+                <p>宿舍楼下多取餐架联动，默认启用深夜弱光增强和高频心跳检查。</p>
 
 
               </div>
@@ -915,7 +988,7 @@
                 <h3>多租户协同</h3>
 
 
-                <p>白名单授权与取餐码统一管理。</p>
+                <p>多租户共享取餐区，默认开启白名单、取餐码和误报复核队列。</p>
 
 
               </div>
@@ -951,7 +1024,7 @@
                 <h3>企业配送点</h3>
 
 
-                <p>集中式告警与取证闭环。</p>
+                <p>企业配送点集中管理，默认导出日报、证据包和责任追溯链。</p>
 
 
               </div>
@@ -987,7 +1060,7 @@
                 <h3>深夜监控方案</h3>
 
 
-                <p>弱光增强与异常触发保护。</p>
+                <p>深夜无人值守时段，提升异常动作权重并降低普通提醒噪声。</p>
 
 
               </div>
@@ -1023,7 +1096,7 @@
                 <h3>数据中心模板</h3>
 
 
-                <p>多报表与规则集全量洞察。</p>
+                <p>高频运营场景，优先配置趋势报表、规则命中和设备离线追踪。</p>
 
 
               </div>
@@ -1054,7 +1127,7 @@
 
 
 
-        <section class="panel" id="motion" data-reveal>
+        <section class="panel workspace-page" id="motion" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1064,23 +1137,23 @@
           </div>
 
 
-          <div class="showcase-suite">
+          <div class="showcase-suite workspace-suite">
           <div class="section-role section-role-showcase" aria-hidden="true">
-            <span>Motion Lab</span>
-            <span>Brand Experiments</span>
+            <span>Sensor Playback</span>
+            <span>Timeline / Waveform / Evidence</span>
           </div>
 
 
           <div class="panel-head">
 
 
-            <h2>动效案例</h2>
+            <h2>感知回放</h2>
 
 
             <div class="panel-actions">
 
 
-              <span class="pill">SVG LAB</span>
+              <span class="pill">PLAYBACK</span>
 
 
               <button class="ghost" id="motion-assets-btn" type="button">打开素材</button>
@@ -1091,6 +1164,19 @@
 
           </div>
 
+
+          <div class="workspace-masthead sensor-playback-board">
+            <div>
+              <span class="board-kicker">event replay</span>
+              <strong>动效只表达监控语义：事件时间线、传感波形和证据轨迹</strong>
+              <p>值班员用这里复看一次告警从传感触发到规则命中的全过程，判断是否误报、是否需要生成证据包。</p>
+            </div>
+            <div class="workspace-status-grid">
+              <span><b>motion</b> 动作评分</span>
+              <span><b>weight</b> 重量变化</span>
+              <span><b>clip</b> 证据片段</span>
+            </div>
+          </div>
 
           <div class="filter-bar" data-target="#motion-grid" data-filter-bar="motion">
 
@@ -1146,13 +1232,13 @@
               <div class="motion-body">
 
 
-                <div class="motion-tag">Alarm Flow</div>
+                <div class="motion-tag">Alarm Timeline</div>
 
 
-                <h3>告警路径映射</h3>
+                <h3>告警时间线</h3>
 
 
-                <p>多源事件轨迹描边，实时展示触发链路与抑制节点。</p>
+                <p>按毫秒顺序展示动作、重量和规则命中，定位告警起点。</p>
 
 
               </div>
@@ -1203,13 +1289,13 @@
               <div class="motion-body">
 
 
-                <div class="motion-tag">Vision Mesh</div>
+                <div class="motion-tag">Sensor Fusion</div>
 
 
-                <h3>视觉守护网格</h3>
+                <h3>传感融合波形</h3>
 
 
-                <p>低功耗监控视野动画化，实时标注异常区域。</p>
+                <p>把 ROI 遮挡、重量下降和物品消失映射到同一回放轨道。</p>
 
 
               </div>
@@ -1266,7 +1352,7 @@
                 <h3>取证轨迹回放</h3>
 
 
-                <p>自动打点取证片段，回放路径即刻生成。</p>
+                <p>证据片段自动打点，回放后可直接跳转到证据舱生成留档。</p>
 
 
               </div>
@@ -1293,16 +1379,10 @@
           <div class="motion-strip">
 
 
-            <span class="chip">路径叠加</span>
-
-
-            <span class="chip">节点纹理</span>
-
-
-            <span class="chip">光谱呼吸</span>
-
-
-            <span class="chip">视觉节奏</span>
+            <span class="chip">事件时间线</span>
+            <span class="chip">传感波形</span>
+            <span class="chip">规则命中</span>
+            <span class="chip">证据片段</span>
 
 
           </div>
@@ -1315,7 +1395,7 @@
 
 
 
-        <section class="panel" id="workflow" data-reveal>
+        <section class="panel workspace-page" id="workflow" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1325,24 +1405,37 @@
           </div>
 
 
-          <div class="showcase-suite">
+          <div class="showcase-suite workspace-suite">
           <div class="section-role section-role-showcase" aria-hidden="true">
-            <span>Flow Chain</span>
-            <span>From Trigger to Evidence</span>
+            <span>Guard Loop</span>
+            <span>Order / Sensor / Rule / Evidence</span>
           </div>
 
 
           <div class="panel-head">
 
 
-            <h2>一体化防护流程</h2>
+            <h2>闭环流程</h2>
 
 
-            <span class="hint">从订单触达到取证归档，四步完成闭环。</span>
+            <span class="hint">从订单送达到取证归档，所有节点都能回到可操作页面。</span>
 
 
           </div>
 
+
+          <div class="workspace-masthead workflow-loop-board">
+            <div>
+              <span class="board-kicker">runbook</span>
+              <strong>订单导入后，系统按布防、感知、规则、告警、证据、报表连续推进</strong>
+              <p>流程页用于值班交接和故障排查：每一步都有对应的系统页面、关键状态和人工动作。</p>
+            </div>
+            <div class="workspace-status-grid">
+              <span><b>01</b> 运维导入</span>
+              <span><b>02</b> 规则命中</span>
+              <span><b>03</b> 告警取证</span>
+            </div>
+          </div>
 
           <div class="workflow-grid">
 
@@ -1353,10 +1446,10 @@
               <span class="workflow-index">01</span>
 
 
-              <h3>订单触发</h3>
+              <h3>订单导入</h3>
 
 
-              <p>平台回调或手动导入，启动监控与提醒。</p>
+              <p>平台回调或手动录入订单，送达后进入待布防队列。</p>
 
 
             </div>
@@ -1368,10 +1461,10 @@
               <span class="workflow-index">02</span>
 
 
-              <h3>多源感知</h3>
+              <h3>送达布防</h3>
 
 
-              <p>摄像头、重量与动作评分融合判定。</p>
+              <p>摄像头、重量传感和动作评分同步采样，形成事件流。</p>
 
 
             </div>
@@ -1386,7 +1479,7 @@
               <h3>规则引擎</h3>
 
 
-              <p>全局与个人规则并行，精准抑制误报。</p>
+              <p>全局与个人规则并行，记录命中、冷却和抑制原因。</p>
 
 
             </div>
@@ -1401,7 +1494,7 @@
               <h3>告警取证</h3>
 
 
-              <p>推送告警、证据录像、云端封存。</p>
+              <p>告警分派、证据片段、审计日志和报表导出完成闭环。</p>
 
 
             </div>
@@ -1417,7 +1510,7 @@
 
 
 
-        <section class="panel" id="reports" data-reveal>
+        <section class="panel workspace-page" id="reports" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1428,9 +1521,26 @@
 
 
           <div class="command-center-panel">
+          <div class="workspace-utility">
+            <span class="workspace-crumb">概览 / 报表</span>
+            <button class="ghost workspace-back" type="button" data-workspace-back>返回概览</button>
+          </div>
           <div class="section-role section-role-command" aria-hidden="true">
             <span>Data Command</span>
             <span>Metrics / Trends / Export</span>
+          </div>
+
+          <div class="data-review-board" data-review-board>
+            <div>
+              <span class="board-kicker">review scope</span>
+              <strong>告警、订单、设备与规则命中统一复盘</strong>
+              <p>按日/周查看趋势，导出摘要、趋势和规则命中 CSV，支撑取证后的运营复盘。</p>
+            </div>
+            <div class="board-status-grid">
+              <span><b>24h</b> 事件窗口</span>
+              <span><b>CSV</b> 可导出</span>
+              <span><b>rules</b> 命中追踪</span>
+            </div>
           </div>
 
 
@@ -1722,7 +1832,7 @@
 
 
 
-        <section class="panel" id="ops" data-reveal>
+        <section class="panel workspace-page" id="ops" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1733,6 +1843,10 @@
 
 
           <div class="command-center-panel">
+          <div class="workspace-utility">
+            <span class="workspace-crumb">概览 / 运维中心</span>
+            <button class="ghost workspace-back" type="button" data-workspace-back>返回概览</button>
+          </div>
           <div class="section-role section-role-command" aria-hidden="true">
             <span>Ops Station</span>
             <span>Import / Config / Audit</span>
@@ -1745,6 +1859,13 @@
             <h2>运维中心</h2>
 
 
+          </div>
+
+          <div class="ops-readiness-strip">
+            <span><b>01</b> 导入订单</span>
+            <span><b>02</b> 送达布防</span>
+            <span><b>03</b> 设备阈值</span>
+            <span><b>04</b> 审计留痕</span>
           </div>
 
 
@@ -1768,6 +1889,7 @@
 
 
                   <input type="text" id="merchant" placeholder="Coffee Lab" />
+                  <span class="field-error" id="merchant-error" aria-live="polite"></span>
 
 
                 </div>
@@ -1780,6 +1902,7 @@
 
 
                   <input type="text" id="summary" placeholder="Latte + pastry" />
+                  <span class="field-error" id="summary-error" aria-live="polite"></span>
 
 
                 </div>
@@ -1792,6 +1915,7 @@
 
 
                   <input type="number" id="pickup-window" value="30" min="5" max="180" />
+                  <span class="field-error" id="pickup-window-error" aria-live="polite"></span>
 
 
                 </div>
@@ -1800,16 +1924,17 @@
                 <div class="form-actions">
 
 
-                  <button type="submit" class="primary">导入订单</button>
+                <button type="submit" class="primary">导入订单</button>
 
 
-                  <button type="button" id="enable-push" class="ghost">启用推送</button>
+                <button type="button" id="enable-push" class="ghost">启用推送</button>
 
 
                 </div>
 
 
               </form>
+              <div class="form-status" id="import-form-status" role="status" aria-live="polite">等待订单信息</div>
 
 
               <div class="hint">演示账号自动登录后可使用“模拟送达”测试告警。</div>
@@ -1831,6 +1956,7 @@
 
 
                 <input type="number" id="min-motion" value="5000" />
+                <span class="field-error" id="min-motion-error" aria-live="polite"></span>
 
 
               </div>
@@ -1843,6 +1969,7 @@
 
 
                 <input type="number" id="max-drop" value="-300" />
+                <span class="field-error" id="max-drop-error" aria-live="polite"></span>
 
 
               </div>
@@ -1873,6 +2000,7 @@
 
 
                 <input type="text" id="pickup-code" placeholder="6 位动态码" />
+                <span class="field-error" id="pickup-code-error" aria-live="polite"></span>
 
 
               </div>
@@ -1913,7 +2041,7 @@
 
 
 
-        <section class="panel" id="rules" data-reveal>
+        <section class="panel workspace-page" id="rules" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1926,6 +2054,10 @@
           <div class="section-role section-role-command" aria-hidden="true">
             <span>Rule Engine</span>
             <span>Policies / Visibility / Control</span>
+          </div>
+          <div class="workspace-utility">
+            <span class="workspace-crumb">概览 / 规则引擎</span>
+            <button class="ghost workspace-back" type="button" data-workspace-back>返回概览</button>
           </div>
 
 
@@ -1940,6 +2072,12 @@
 
           </div>
 
+          <div class="rules-strategy-board">
+            <div><span>全局策略</span><strong>异常取餐评分</strong></div>
+            <div><span>规则 DSL</span><strong>条件组可视化</strong></div>
+            <div><span>冷却抑制</span><strong>误报可追踪</strong></div>
+          </div>
+
 
           <div class="command-shell command-shell-data">
             <div id="rules-root"></div>
@@ -1952,7 +2090,7 @@
 
 
 
-        <section class="panel" id="orders" data-reveal>
+        <section class="panel workspace-page" id="orders" data-workspace-page data-reveal>
           <div class="panel-decor" aria-hidden="true">
             <span class="corner tl"></span>
             <span class="corner tr"></span>
@@ -1966,6 +2104,10 @@
             <span>Orders Feed</span>
             <span>Queue / Pickup / Status</span>
           </div>
+          <div class="workspace-utility">
+            <span class="workspace-crumb">概览 / 订单列表</span>
+            <button class="ghost workspace-back" type="button" data-workspace-back>返回概览</button>
+          </div>
 
 
           <div class="panel-head">
@@ -1974,6 +2116,12 @@
             <h2>订单列表</h2>
 
 
+          </div>
+
+          <div class="orders-command-strip">
+            <span><b>created</b> 等待送达</span>
+            <span><b>delivered</b> 可启动监控</span>
+            <span><b>picked</b> 可确认闭环</span>
           </div>
 
 
@@ -1987,6 +2135,13 @@
 
 
         <div class="audit-chain-layout">
+
+          <div class="audit-response-board">
+            <span><b>match</b> 规则命中</span>
+            <span><b>alert</b> 告警分派</span>
+            <span><b>evidence</b> 证据包</span>
+            <span><b>device</b> 节点健康</span>
+          </div>
 
 
           <section class="panel" id="rule-matches" data-reveal>
@@ -2206,6 +2361,12 @@
 
                 </div>
 
+                <div class="evidence-state-strip">
+                  <span>载荷 JSON</span>
+                  <span>媒体片段</span>
+                  <span>上下文回放</span>
+                </div>
+
 
                 <div class="command-shell command-shell-cabinet list-shell">
                   <pre id="alert-detail-output" class="code"></pre>
@@ -2267,6 +2428,18 @@
 
       </main>
 
+      <footer class="site-footer">
+        <div>
+          <strong>Takeout Guard</strong>
+          <span>证据链、设备状态和规则复盘统一留痕。</span>
+        </div>
+        <nav aria-label="Legal">
+          <a href="#privacy">隐私</a>
+          <a href="#terms">服务条款</a>
+          <a href="#healthz" id="footer-health-link">系统状态</a>
+        </nav>
+      </footer>
+
 
     </div>
 
@@ -2281,6 +2454,13 @@
 
 
     </script>
+
+
+    <script src="./api_client.js?v=20260423-architecture-robustness"></script>
+
+    <script src="./auth_client.js?v=20260423-auth-split"></script>
+
+    <script src="./report_client.js?v=20260423-report-split"></script>
 
 
     <script src="./rule_dsl_editor.js?v=20260417-console-copy-fix"></script>
@@ -2304,16 +2484,21 @@
   <script src="./ws_throttle.js?v=20260417-console-copy-fix"></script>
 
 
+  <script src="./realtime_client.js?v=20260426-front-stabilize"></script>
+
+
   <script src="./report_mapping.js?v=20260417-console-copy-fix"></script>
 
 
   <script src="./api_params.js?v=20260417-console-copy-fix"></script>
 
-
   <script src="./rule_set_select.js?v=20260417-console-copy-fix"></script>
 
 
   <script src="./alert_actions.js?v=20260417-console-copy-fix"></script>
+
+
+  <script src="./workspace_cards.js?v=20260426-front-stabilize"></script>
 
 
   <script src="./app.js?v=20260417-console-copy-fix"></script>

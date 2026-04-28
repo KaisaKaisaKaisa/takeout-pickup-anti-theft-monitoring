@@ -1,3 +1,4 @@
+import importlib
 import os
 import sys
 import unittest
@@ -34,11 +35,16 @@ except Exception:
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_dir)
 
-from app.core import cache_invalidation
+
+def load_module():
+    for name in ["app.core.cache_invalidation", "app.core.cache", "app.core", "app"]:
+        sys.modules.pop(name, None)
+    return importlib.import_module("app.core.cache_invalidation")
 
 
 class CacheInvalidationTests(unittest.TestCase):
     def test_invalidate_report_caches_user(self):
+        cache_invalidation = load_module()
         user_id = uuid.uuid4()
         with patch("app.core.cache_invalidation.cache.invalidate") as invalidate:
             cache_invalidation.invalidate_report_caches(user_id)
@@ -53,6 +59,7 @@ class CacheInvalidationTests(unittest.TestCase):
         )
 
     def test_invalidate_report_caches_global_only(self):
+        cache_invalidation = load_module()
         with patch("app.core.cache_invalidation.cache.invalidate") as invalidate:
             cache_invalidation.invalidate_report_caches(None)
         invalidate.assert_has_calls(

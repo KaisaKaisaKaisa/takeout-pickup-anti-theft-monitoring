@@ -31,11 +31,28 @@ app_services_rule_dsl.validate_dsl = lambda *_: None
 app_services_rule_dsl.dsl_to_conditions = lambda *_: {}
 sys.modules["app.services.rule_dsl"] = app_services_rule_dsl
 
+app_services_alert_engine = types.ModuleType("app.services.alert_engine")
+app_services_alert_engine._match_conditions = lambda *_args, **_kwargs: True
+sys.modules["app.services.alert_engine"] = app_services_alert_engine
+
+app_services = types.ModuleType("app.services")
+app_services.audit_service = app_services_audit
+app_services.rule_permissions = app_services_rule_permissions
+app_services.rule_dsl = app_services_rule_dsl
+app_services.alert_engine = app_services_alert_engine
+app_services.__path__ = []
+sys.modules["app.services"] = app_services
+
 app_models = types.ModuleType("app.models.entities")
 app_models.RuleSet = type("RuleSet", (), {})
 app_models.Rule = type("Rule", (), {})
 app_models.RuleMatchLog = type("RuleMatchLog", (), {})
 sys.modules["app.models.entities"] = app_models
+
+app_models_pkg = types.ModuleType("app.models")
+app_models_pkg.entities = app_models
+app_models_pkg.__path__ = []
+sys.modules["app.models"] = app_models_pkg
 
 app_schemas = types.ModuleType("app.schemas.schemas")
 try:
@@ -73,14 +90,39 @@ app_schemas.RuleOut = _RuleOut
 app_schemas.RuleMatchLogOut = _RuleMatchLogOut
 sys.modules["app.schemas.schemas"] = app_schemas
 
+app_schemas_pkg = types.ModuleType("app.schemas")
+app_schemas_pkg.schemas = app_schemas
+app_schemas_pkg.__path__ = []
+sys.modules["app.schemas"] = app_schemas_pkg
+
+app_core = types.ModuleType("app.core")
+app_core.db = app_core_db
+app_core.security = app_core_security
+app_core.__path__ = []
+sys.modules["app.core"] = app_core
+
 app_module = types.ModuleType("app")
-app_module.core = types.SimpleNamespace(db=app_core_db, security=app_core_security)
-app_module.services = types.SimpleNamespace(rule_dsl=app_services_rule_dsl, rule_permissions=app_services_rule_permissions, audit_service=app_services_audit)
-app_module.models = types.SimpleNamespace(entities=app_models)
-app_module.schemas = types.SimpleNamespace(schemas=app_schemas)
+app_module.core = app_core
+app_module.services = app_services
+app_module.models = app_models_pkg
+app_module.schemas = app_schemas_pkg
+app_module.__path__ = []
 sys.modules["app"] = app_module
 
 def load_module():
+    sys.modules["app.core.db"] = app_core_db
+    sys.modules["app.core.security"] = app_core_security
+    sys.modules["app.core"] = app_core
+    sys.modules["app.services.audit_service"] = app_services_audit
+    sys.modules["app.services.rule_permissions"] = app_services_rule_permissions
+    sys.modules["app.services.rule_dsl"] = app_services_rule_dsl
+    sys.modules["app.services.alert_engine"] = app_services_alert_engine
+    sys.modules["app.services"] = app_services
+    sys.modules["app.models.entities"] = app_models
+    sys.modules["app.models"] = app_models_pkg
+    sys.modules["app.schemas.schemas"] = app_schemas
+    sys.modules["app.schemas"] = app_schemas_pkg
+    sys.modules["app"] = app_module
     spec = importlib.util.spec_from_file_location("rules_router", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

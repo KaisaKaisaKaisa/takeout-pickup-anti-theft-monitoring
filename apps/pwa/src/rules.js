@@ -1,4 +1,8 @@
 const API_BASE = typeof window.API_BASE !== "undefined" ? window.API_BASE : "http://localhost:18000/api/v1";
+const apiClient =
+  window.apiClient ||
+  (typeof globalThis !== "undefined" ? globalThis.apiClient : null) ||
+  (typeof require === "function" ? require("./api_client") : null);
 
 async function parseApiResponse(res) {
   const contentType = res.headers?.get?.("content-type") || "";
@@ -15,6 +19,9 @@ async function parseApiResponse(res) {
 }
 
 async function requestJson(path, options = {}) {
+  if (apiClient && typeof apiClient.request === "function") {
+    return apiClient.request(path, options, { apiBase: API_BASE, retry: false });
+  }
   const res = await fetch(`${API_BASE}${path}`, options);
   return parseApiResponse(res);
 }

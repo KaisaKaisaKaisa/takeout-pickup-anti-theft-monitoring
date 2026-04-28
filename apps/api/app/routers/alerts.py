@@ -7,6 +7,12 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.entities import AlertIncident, MonitoringSession, Order, MediaAsset
 from app.schemas.schemas import AlertOut, AlertListOut
+try:
+    from app.schemas.schemas import AlertDetailOut, ErrorOut, OkOut
+except ImportError:
+    AlertDetailOut = dict
+    ErrorOut = dict
+    OkOut = dict
 from app.services.report_service import export_incidents_csv
 from app.services.audit_service import log_action
 from app.core.cache_invalidation import invalidate_report_caches
@@ -14,6 +20,17 @@ from app.services.ws_payloads import build_alert_payload, build_event_payload
 from app.services.alert_service import apply_alert_status
 
 router = APIRouter()
+ERROR_RESPONSES = {
+    400: {"model": ErrorOut},
+    403: {"model": ErrorOut},
+    404: {"model": ErrorOut},
+}
+CSV_RESPONSE = {
+    200: {
+        "description": "CSV download",
+        "content": {"text/csv": {"schema": {"type": "string"}}},
+    }
+}
 
 
 def _parse_incident_id(incident_id: str) -> uuid.UUID:
@@ -48,7 +65,7 @@ async def list_alerts(
         ]
     )
 
-@router.get("/{incident_id}")
+@router.get("/{incident_id}", response_model=AlertDetailOut, responses=ERROR_RESPONSES)
 async def get_alert_detail(
     incident_id: str,
     db: AsyncSession = Depends(get_db),
@@ -87,7 +104,7 @@ async def get_alert_detail(
         ],
     }
 
-@router.post("/{incident_id}/ack")
+@router.post("/{incident_id}/ack", response_model=OkOut)
 async def ack_alert(
     incident_id: str,
     db: AsyncSession = Depends(get_db),
@@ -113,7 +130,7 @@ async def ack_alert(
     )
     return {"ok": True}
 
-@router.post("/{incident_id}/resolve")
+@router.post("/{incident_id}/resolve", response_model=OkOut)
 async def resolve_alert(
     incident_id: str,
     db: AsyncSession = Depends(get_db),
@@ -139,7 +156,7 @@ async def resolve_alert(
     )
     return {"ok": True}
 
-@router.post("/{incident_id}/false-positive")
+@router.post("/{incident_id}/false-positive", response_model=OkOut)
 async def false_positive(
     incident_id: str,
     db: AsyncSession = Depends(get_db),
@@ -176,7 +193,7 @@ async def false_positive(
     )
     return {"ok": True}
 
-@router.get("/export/csv")
+@router.get("/export/csv", response_class=Response, responses=CSV_RESPONSE)
 async def export_alerts(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),

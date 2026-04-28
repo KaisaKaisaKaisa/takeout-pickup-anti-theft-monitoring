@@ -21,6 +21,7 @@ coverage/
 
 logs/
 *.log
+output/
 
 queue.jsonl
 storage/

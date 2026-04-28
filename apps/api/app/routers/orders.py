@@ -1,23 +1,38 @@
 import uuid
-import uuid
-from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.models.entities import Order
 from app.schemas.schemas import OrderCreate, OrderOut, OrderListOut
+try:
+    from app.schemas.schemas import ErrorOut, OkOut, OrderArmOut
+except ImportError:
+    ErrorOut = dict
+    OkOut = dict
+    OrderArmOut = dict
 from app.core.security import get_current_user
-from app.services.device_service import get_or_create_dev_device
-from app.services.session_service import find_active_session, create_session_for_order, resolve_pickup_deadline
-from app.services.order_state import apply_order_status, InvalidStatusTransition
-from app.services.ws_payloads import build_event_payload, build_order_payload
+from app.services import order_application
+from app.services.order_application import (
+    OrderForbiddenError,
+    OrderNotFoundError,
+    OrderTransitionError,
+)
 from app.services.report_service import export_orders_csv
-from app.services.audit_service import log_action
-from app.core.cache_invalidation import invalidate_report_caches
 from fastapi.responses import Response
 
 router = APIRouter()
+ERROR_RESPONSES = {
+    400: {"model": ErrorOut},
+    403: {"model": ErrorOut},
+    404: {"model": ErrorOut},
+}
+CSV_RESPONSE = {
+    200: {
+        "description": "CSV download",
+        "content": {"text/csv": {"schema": {"type": "string"}}},
+    }
+}
 
 @router.post("/manual-import", response_model=OrderOut)
 async def manual_import(
@@ -25,39 +40,10 @@ async def manual_import(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    expected_pickup_by = None
-    if payload.expected_pickup_minutes and payload.expected_pickup_minutes > 0:
-        expected_pickup_by = datetime.now(timezone.utc) + timedelta(minutes=payload.expected_pickup_minutes)
-    order = Order(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        provider=payload.provider,
-        provider_order_id=payload.provider_order_id,
-        merchant_name=payload.merchant_name,
-        item_summary=payload.item_summary,
-        status="created",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
-        expected_pickup_by=expected_pickup_by,
-    )
-    db.add(order)
     try:
-        await apply_order_status(db, order, "created", source="manual", raw_payload={})
-    except InvalidStatusTransition as exc:
+        order = await order_application.manual_import(db, user.id, payload)
+    except OrderTransitionError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    await log_action(db, user.id, "order.created", "order", str(order.id))
-    await db.commit()
-    invalidate_report_caches(user.id)
-    from app.core import ws as ws_hub
-    order_payload = build_order_payload(order)
-    await ws_hub.broadcast_event(
-        "order.created",
-        {
-            "order_id": str(order.id),
-            "order": order_payload,
-            **build_event_payload("order", order_payload),
-        },
-    )
     return OrderOut(
         id=str(order.id),
         provider=order.provider,
@@ -98,7 +84,7 @@ async def list_orders(
         ]
     )
 
-@router.get("/{order_id}", response_model=OrderOut)
+@router.get("/{order_id}", response_model=OrderOut, responses=ERROR_RESPONSES)
 async def get_order(
     order_id: str,
     db: AsyncSession = Depends(get_db),
@@ -148,7 +134,7 @@ async def order_timeline(
         for e in events
     ]
 
-@router.get("/export/csv")
+@router.get("/export/csv", response_class=Response, responses=CSV_RESPONSE)
 async def export_orders(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
@@ -160,95 +146,32 @@ async def export_orders(
         headers={"Content-Disposition": "attachment; filename=orders.csv"},
     )
 
-@router.post("/{order_id}/confirm-pickup")
+@router.post("/{order_id}/confirm-pickup", response_model=OkOut)
 async def confirm_pickup(
     order_id: str,
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    result = await db.execute(select(Order).where(Order.id == uuid.UUID(order_id)))
-    order = result.scalar_one_or_none()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    if order.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    if order.status == "picked_up":
-        from app.core import ws as ws_hub
-        order_payload = build_order_payload(order)
-        await ws_hub.broadcast_event(
-            "order.picked_up",
-            {
-                "order_id": str(order.id),
-                "order": order_payload,
-                **build_event_payload("order", order_payload),
-            },
-        )
-        return {"ok": True}
     try:
-        await apply_order_status(db, order, "picked_up", source="user", raw_payload={})
-    except InvalidStatusTransition as exc:
+        await order_application.confirm_pickup(db, user.id, order_id)
+    except OrderNotFoundError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    except OrderForbiddenError:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    except OrderTransitionError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    order.updated_at = datetime.now(timezone.utc)
-    await log_action(db, user.id, "order.picked_up", "order", str(order.id))
-    await db.commit()
-    invalidate_report_caches(user.id)
-    from app.core import ws as ws_hub
-    order_payload = build_order_payload(order)
-    await ws_hub.broadcast_event(
-        "order.picked_up",
-        {
-            "order_id": str(order.id),
-            "order": order_payload,
-            **build_event_payload("order", order_payload),
-        },
-    )
     return {"ok": True}
 
-@router.post("/{order_id}/arm")
+@router.post("/{order_id}/arm", response_model=OrderArmOut)
 async def arm_order(
     order_id: str,
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    result = await db.execute(select(Order).where(Order.id == uuid.UUID(order_id)))
-    order = result.scalar_one_or_none()
-    if not order:
+    try:
+        result = await order_application.arm_order(db, user.id, order_id)
+    except OrderNotFoundError:
         raise HTTPException(status_code=404, detail="Order not found")
-    if order.user_id != user.id:
+    except OrderForbiddenError:
         raise HTTPException(status_code=403, detail="Forbidden")
-    active_session = await find_active_session(db, order.id)
-    if active_session:
-        order.latest_session_id = active_session.id
-        await db.commit()
-        from app.core import ws as ws_hub
-        order_payload = build_order_payload(order)
-        await ws_hub.broadcast_event(
-            "order.armed",
-            {
-                "order_id": str(order.id),
-                "session_id": str(active_session.id),
-                "deduped": True,
-                "order": order_payload,
-                **build_event_payload("order", order_payload),
-            },
-        )
-        return {"session_id": str(active_session.id), "deduped": True}
-    device = await get_or_create_dev_device(db, user.id)
-    await resolve_pickup_deadline(db, order, fallback_minutes=30)
-    session = await create_session_for_order(db, order, device)
-    await log_action(db, user.id, "order.armed", "order", str(order.id))
-    await db.commit()
-    invalidate_report_caches(user.id)
-    from app.core import ws as ws_hub
-    order_payload = build_order_payload(order)
-    await ws_hub.broadcast_event(
-        "order.armed",
-        {
-            "order_id": str(order.id),
-            "session_id": str(session.id),
-            "deduped": False,
-            "order": order_payload,
-            **build_event_payload("order", order_payload),
-        },
-    )
-    return {"session_id": str(session.id)}
+    return {"session_id": result.session_id, "deduped": result.deduped}

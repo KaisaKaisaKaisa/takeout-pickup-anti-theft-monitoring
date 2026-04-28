@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.entities import AlertIncident, EvidenceBundle, MediaAsset, Order
-from app.services.storage_service import write_bytes, storage_path
+from app.services.storage_service import storage_path, write_object
 
 async def generate_evidence_bundle(db: AsyncSession, incident_id) -> EvidenceBundle:
     incident = (await db.execute(select(AlertIncident).where(AlertIncident.id == incident_id))).scalar_one()
@@ -27,6 +27,8 @@ async def generate_evidence_bundle(db: AsyncSession, incident_id) -> EvidenceBun
         "incident_id": str(incident.id),
         "order_id": str(order.id),
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "files": [],
+        "media": [],
     }
     incident_json = {
         "id": str(incident.id),
@@ -52,47 +54,66 @@ async def generate_evidence_bundle(db: AsyncSession, incident_id) -> EvidenceBun
     buf = io.BytesIO()
     event_bytes = json.dumps(incident_json, ensure_ascii=False).encode("utf-8")
     order_bytes = json.dumps(order_json, ensure_ascii=False).encode("utf-8")
-    manifest_bytes = json.dumps(manifest, ensure_ascii=False).encode("utf-8")
+    manifest["files"].extend(
+        [
+            {"path": "event.json", "sha256": hashlib.sha256(event_bytes).hexdigest(), "size_bytes": len(event_bytes)},
+            {"path": "order.json", "sha256": hashlib.sha256(order_bytes).hexdigest(), "size_bytes": len(order_bytes)},
+        ]
+    )
 
     hash_lines = [
-        f"event.json {hashlib.sha256(event_bytes).hexdigest()}",
-        f"order.json {hashlib.sha256(order_bytes).hexdigest()}",
-        f"manifest.json {hashlib.sha256(manifest_bytes).hexdigest()}",
+        f"event.json {manifest['files'][0]['sha256']}",
+        f"order.json {manifest['files'][1]['sha256']}",
     ]
-    hash_bytes = ("\n".join(hash_lines) + "\n").encode("utf-8")
 
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("event.json", event_bytes)
         zf.writestr("order.json", order_bytes)
-        zf.writestr("manifest.json", manifest_bytes)
-        zf.writestr("hash.txt", hash_bytes)
 
         media_rows = (
             await db.execute(select(MediaAsset).where(MediaAsset.incident_id == incident.id))
         ).scalars().all()
         for media in media_rows:
-            if media.storage_provider != "local":
-                continue
+            media_entry = {
+                "media_id": str(media.id),
+                "storage_provider": media.storage_provider,
+                "bucket_name": media.bucket_name,
+                "object_key": media.object_key,
+                "sha256": media.sha256,
+                "size_bytes": media.size_bytes,
+                "content_type": media.content_type,
+            }
+            manifest["media"].append(media_entry)
             media_path = storage_path(media.object_key)
-            if media_path.exists():
-                zf.write(media_path, arcname=f"media/{media_path.name}")
+            if media.storage_provider == "local" and media_path.exists():
+                media_bytes = media_path.read_bytes()
+                arcname = f"media/{media_path.name}"
+                media_hash = hashlib.sha256(media_bytes).hexdigest()
+                zf.writestr(arcname, media_bytes)
+                manifest["files"].append({"path": arcname, "sha256": media_hash, "size_bytes": len(media_bytes)})
+                hash_lines.append(f"{arcname} {media_hash}")
+
+        manifest_bytes = json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
+        zf.writestr("manifest.json", manifest_bytes)
+        hash_lines.append(f"manifest.json {manifest_hash}")
+        zf.writestr("hash.txt", ("\n".join(hash_lines) + "\n").encode("utf-8"))
 
     zip_bytes = buf.getvalue()
-    sha256 = hashlib.sha256(zip_bytes).hexdigest()
     zip_key = f"evidence/{bundle.id}.zip"
-    write_bytes(zip_key, zip_bytes)
+    stored = write_object(zip_key, zip_bytes, content_type="application/zip")
 
     media = MediaAsset(
         order_id=order.id,
         session_id=incident.session_id,
         incident_id=incident.id,
         media_type="evidence_zip",
-        storage_provider="local",
-        bucket_name="local",
-        object_key=zip_key,
+        storage_provider=stored["storage_provider"],
+        bucket_name=stored["bucket_name"],
+        object_key=stored["object_key"],
         content_type="application/zip",
-        size_bytes=len(zip_bytes),
-        sha256=sha256,
+        size_bytes=stored["size_bytes"],
+        sha256=stored["sha256"],
         retention_class="evidence",
     )
     db.add(media)

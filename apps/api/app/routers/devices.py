@@ -8,10 +8,23 @@ from app.models.entities import EdgeDevice
 from app.services.audit_service import log_action
 from app.services.config_service import apply_device_preset, build_device_config, merge_device_config
 from app.services.ws_payloads import build_device_payload, build_event_payload
-from app.schemas.schemas import DeviceRegister, DeviceOut
+from app.schemas.schemas import DeviceRegister, DeviceOut, DeviceListOut
+try:
+    from app.schemas.schemas import DeviceConfigOut, DeviceDetailOut, DeviceHealthOut, ErrorOut, OkOut
+except ImportError:
+    DeviceConfigOut = dict
+    DeviceDetailOut = dict
+    DeviceHealthOut = dict
+    ErrorOut = dict
+    OkOut = dict
 from app.core.cache_invalidation import invalidate_report_caches
 
 router = APIRouter()
+ERROR_RESPONSES = {
+    400: {"model": ErrorOut},
+    403: {"model": ErrorOut},
+    404: {"model": ErrorOut},
+}
 
 
 def _parse_device_id(device_id: str) -> uuid.UUID:
@@ -56,7 +69,7 @@ async def register_device(
         device_code=device.device_code,
     )
 
-@router.get("")
+@router.get("", response_model=DeviceListOut)
 async def list_devices(
     all: bool = Query(False),
     db: AsyncSession = Depends(get_db),
@@ -69,18 +82,20 @@ async def list_devices(
         stmt = stmt.where(EdgeDevice.owner_user_id == user.id)
     result = await db.execute(stmt)
     devices = result.scalars().all()
-    return [
-        {
-            "id": str(d.id),
-            "name": d.name,
-            "device_type": d.device_type,
-            "status": d.status,
-            "device_code": d.device_code,
-        }
-        for d in devices
-    ]
+    return {
+        "devices": [
+            {
+                "id": str(d.id),
+                "name": d.name,
+                "device_type": d.device_type,
+                "status": d.status,
+                "device_code": d.device_code,
+            }
+            for d in devices
+        ]
+    }
 
-@router.get("/{device_id}")
+@router.get("/{device_id}", response_model=DeviceDetailOut, responses=ERROR_RESPONSES)
 async def get_device(device_id: str, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
     parsed_device_id = _parse_device_id(device_id)
     result = await db.execute(select(EdgeDevice).where(EdgeDevice.id == parsed_device_id))
@@ -99,7 +114,7 @@ async def get_device(device_id: str, db: AsyncSession = Depends(get_db), user=De
         "last_seen_at": device.last_seen_at,
     }
 
-@router.patch("/{device_id}")
+@router.patch("/{device_id}", response_model=OkOut)
 async def update_device(device_id: str, payload: dict, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
     parsed_device_id = _parse_device_id(device_id)
     result = await db.execute(select(EdgeDevice).where(EdgeDevice.id == parsed_device_id))
@@ -126,7 +141,7 @@ async def update_device(device_id: str, payload: dict, db: AsyncSession = Depend
     )
     return {"ok": True}
 
-@router.patch("/{device_id}/config")
+@router.patch("/{device_id}/config", response_model=DeviceConfigOut)
 async def update_device_config(
     device_id: str,
     payload: dict,
@@ -187,7 +202,7 @@ async def apply_preset(
     invalidate_report_caches(user.id)
     return {"ok": True, "preset": preset}
 
-@router.get("/{device_id}/health")
+@router.get("/{device_id}/health", response_model=DeviceHealthOut)
 async def device_health(device_id: str, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
     parsed_device_id = _parse_device_id(device_id)
     result = await db.execute(select(EdgeDevice).where(EdgeDevice.id == parsed_device_id))

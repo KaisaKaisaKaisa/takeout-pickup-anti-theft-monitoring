@@ -13,6 +13,11 @@ app_core_config.settings = types.SimpleNamespace(
 )
 sys.modules["app.core.config"] = app_core_config
 
+app_core = types.ModuleType("app.core")
+app_core.config = app_core_config
+app_core.__path__ = []
+sys.modules["app.core"] = app_core
+
 app_models = types.ModuleType("app.models.entities")
 
 
@@ -25,11 +30,27 @@ class _EdgeDevice:
 app_models.EdgeDevice = _EdgeDevice
 sys.modules["app.models.entities"] = app_models
 
+app_models_pkg = types.ModuleType("app.models")
+app_models_pkg.entities = app_models
+app_models_pkg.__path__ = []
+sys.modules["app.models"] = app_models_pkg
+
+app_module = types.ModuleType("app")
+app_module.core = app_core
+app_module.models = app_models_pkg
+app_module.__path__ = []
+sys.modules["app"] = app_module
+
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MODULE_PATH = os.path.join(base_dir, "app", "services", "config_service.py")
 
 
 def load_module():
+    sys.modules["app.core.config"] = app_core_config
+    sys.modules["app.core"] = app_core
+    sys.modules["app.models.entities"] = app_models
+    sys.modules["app.models"] = app_models_pkg
+    sys.modules["app"] = app_module
     spec = importlib.util.spec_from_file_location("config_service", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

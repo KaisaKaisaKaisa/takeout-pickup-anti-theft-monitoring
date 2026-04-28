@@ -8,10 +8,11 @@ from app.core.security import get_current_user
 from app.models.entities import EvidenceBundle, AlertIncident, MediaAsset, Order
 from app.services.storage_service import storage_path
 from app.services.evidence_service import generate_evidence_bundle
+from app.schemas.schemas import EvidenceGenerateOut, EvidenceOut
 
 router = APIRouter()
 
-@router.post("/{incident_id}/generate")
+@router.post("/{incident_id}/generate", response_model=EvidenceGenerateOut)
 async def generate_evidence(
     incident_id: str,
     db: AsyncSession = Depends(get_db),
@@ -30,7 +31,7 @@ async def generate_evidence(
     await db.commit()
     return {"status": bundle.status, "bundle_id": str(bundle.id)}
 
-@router.get("/{incident_id}")
+@router.get("/{incident_id}", response_model=EvidenceOut)
 async def get_evidence(
     incident_id: str,
     db: AsyncSession = Depends(get_db),

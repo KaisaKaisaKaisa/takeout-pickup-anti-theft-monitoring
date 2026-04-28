@@ -33,7 +33,7 @@ D:\mine_codex\mycodex3
 |   |-- architecture.md
 |   |-- deployment.md
 |   |-- openapi.yaml
-|   |-- schema.sql
+|   |-- schema.sql        # 历史 schema 快照，不作为迁移入口
 |   |-- sequence.mmd
 |   |-- solution.md
 |   |-- webhook.md
@@ -51,6 +51,8 @@ D:\mine_codex\mycodex3
 ```
 
 ## 数据库表设计（摘要）
+
+数据库结构以 Alembic 迁移为唯一来源，迁移目录为 `apps/api/migrations`。`docs/schema.sql` 仅作为历史 schema 快照，不能用于初始化、升级或回滚数据库。
 
 | 表名 | 用途 | 关键字段 |
 | --- | --- | --- |
@@ -73,7 +75,7 @@ D:\mine_codex\mycodex3
 | rules | 规则 | event_type, conditions, action, cooldown_sec |
 | rule_match_logs | 规则命中日志 | rule_id, order_id, event_type, suppressed |
 
-完整字段定义见 `docs/schema.sql`。
+完整字段定义以当前 Alembic revision 为准。
 
 ## API 清单（摘要）
 
